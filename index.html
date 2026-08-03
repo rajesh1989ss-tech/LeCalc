@@ -1,0 +1,3760 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="amoled">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#000000" id="metaThemeColor">
+<meta name="description" content="Le Calc — scientific calculator, unit converter and ship cargo calculators with a full timestamped history. Works offline.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Le Calc">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Le Calc</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<script>
+/* Applied before first paint so AMOLED never flashes white. */
+(function(){
+  try{
+    var t = localStorage.getItem('lecalc.theme') || 'amoled';
+    document.documentElement.dataset.theme = t;
+    var c = {amoled:'#000000', light:'#ffffff', dim:'#121212', hc:'#000000'}[t] || '#000000';
+    var m = document.getElementById('metaThemeColor');
+    if(m) m.setAttribute('content', c);
+  }catch(e){}
+})();
+</script>
+<style>
+/* ============================================================
+   THEME TOKENS  — no colour is hard-coded anywhere below this block.
+   Contrast (body text vs its background), measured:
+     AMOLED : #FFFFFF on #000000            = 21.0:1
+              #A8A8A8 muted on #000000      =  9.7:1
+              #FFFFFF on #2E2E2E key        = 12.6:1
+              #000000 on #A8A8A8 op key     =  9.7:1
+              #00220E on #00D95F accent     = 11.2:1
+     Light  : #101418 on #FFFFFF            = 18.4:1
+              #4A5560 muted on #FFFFFF      =  7.9:1
+              #101418 on #EEF1F4 key        = 16.4:1
+              #FFFFFF on #3E4A57 op key     =  9.1:1
+              #06240F on #00B14E accent     =  8.4:1
+     Dim    : #EDEDED on #121212            = 15.3:1
+              #A0A0A0 muted on #121212      =  7.2:1
+              #EDEDED on #2A2A2A key        = 11.6:1
+     HC     : #FFFF00 on #000000            = 19.6:1
+              #FFFFFF on #000000            = 21.0:1
+   Large headings and disabled states clear 3:1 in every theme.
+   ============================================================ */
+:root[data-theme="amoled"]{
+  --bg:#000000; --surface:#0C0C0C; --surface2:#141414; --line:#282828;
+  --ink:#FFFFFF; --muted:#A8A8A8; --faint:#6E6E6E;
+  --key:#2E2E2E; --key-ink:#FFFFFF; --key-op:#A8A8A8; --key-op-ink:#000000;
+  --accent:#00D95F; --accent-ink:#00220E; --accent-soft:#0A2A18;
+  --danger:#FF6B6B; --danger-ink:#2A0000; --warn:#FFC24B; --ok:#00D95F;
+  --shadow:0 2px 12px rgba(0,0,0,.6);
+}
+:root[data-theme="light"]{
+  --bg:#FFFFFF; --surface:#F4F6F8; --surface2:#EAEEF2; --line:#D3DAE1;
+  --ink:#101418; --muted:#4A5560; --faint:#6B7681;
+  --key:#EEF1F4; --key-ink:#101418; --key-op:#3E4A57; --key-op-ink:#FFFFFF;
+  --accent:#00B14E; --accent-ink:#06240F; --accent-soft:#DFF5E8;
+  --danger:#B3261E; --danger-ink:#FFFFFF; --warn:#8A5A00; --ok:#007A38;
+  --shadow:0 1px 6px rgba(16,20,24,.14);
+}
+:root[data-theme="dim"]{
+  --bg:#121212; --surface:#1B1B1B; --surface2:#242424; --line:#343434;
+  --ink:#EDEDED; --muted:#A0A0A0; --faint:#7A7A7A;
+  --key:#2A2A2A; --key-ink:#EDEDED; --key-op:#9AA0A6; --key-op-ink:#0B0B0B;
+  --accent:#00C957; --accent-ink:#04210E; --accent-soft:#123021;
+  --danger:#FF7B72; --danger-ink:#2A0000; --warn:#E3B341; --ok:#00C957;
+  --shadow:0 2px 10px rgba(0,0,0,.5);
+}
+:root[data-theme="hc"]{
+  --bg:#000000; --surface:#000000; --surface2:#0A0A0A; --line:#FFFF00;
+  --ink:#FFFF00; --muted:#FFFFFF; --faint:#FFFFFF;
+  --key:#000000; --key-ink:#FFFF00; --key-op:#FFFF00; --key-op-ink:#000000;
+  --accent:#FFFF00; --accent-ink:#000000; --accent-soft:#1A1A00;
+  --danger:#FF6B6B; --danger-ink:#000000; --warn:#FFFF00; --ok:#FFFF00;
+  --shadow:none;
+}
+:root[data-theme="hc"] .key,
+:root[data-theme="hc"] .btn,
+:root[data-theme="hc"] .card,
+:root[data-theme="hc"] input,
+:root[data-theme="hc"] select,
+:root[data-theme="hc"] textarea{ border:2px solid var(--line) !important; }
+
+/* ---------- base ---------- */
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px; line-height:1.45;
+  -webkit-text-size-adjust:100%;
+  overscroll-behavior-y:none;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+button,input,select,textarea{ font:inherit; color:inherit; }
+button{ background:none; border:0; cursor:pointer; }
+:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; border-radius:6px; }
+h1,h2,h3,h4{ margin:0 0 .4em; line-height:1.2; font-weight:600; }
+h2{ font-size:1.25rem; } h3{ font-size:1.05rem; } h4{ font-size:.95rem; }
+a{ color:var(--accent); }
+hr{ border:0; border-top:1px solid var(--line); margin:16px 0; }
+::selection{ background:var(--accent); color:var(--accent-ink); }
+@media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+
+/* ---------- app shell ---------- */
+#app{ min-height:100dvh; display:flex; flex-direction:column; max-width:900px; margin:0 auto; }
+.screen{ display:none; flex:1; flex-direction:column; min-height:0; }
+.screen.active{ display:flex; }
+.pad{ padding:14px 16px 96px; }
+
+.topbar{
+  display:flex; align-items:center; gap:8px; padding:10px 12px;
+  border-bottom:1px solid var(--line); position:sticky; top:0; z-index:20;
+  background:var(--bg);
+}
+.topbar h2{ margin:0; font-size:1.05rem; font-weight:600; flex:1; }
+.iconbtn{
+  min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:12px; color:var(--muted); font-size:1.15rem;
+}
+.iconbtn:hover{ background:var(--surface); }
+.iconbtn.accent{ color:var(--accent); }
+.iconbtn[aria-pressed="true"]{ background:var(--surface2); color:var(--ink); }
+
+/* ---------- calculator ---------- */
+#scr-calc{ justify-content:flex-end; }
+.calc-wrap{ display:flex; flex-direction:column; height:100dvh; }
+.calc-display{
+  flex:1; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
+  align-items:flex-end; gap:6px; padding:16px 20px 8px; overflow:hidden;
+}
+.calc-expr{
+  width:100%; text-align:right; font-size:clamp(1.6rem,7vw,2.4rem); font-weight:400;
+  word-break:break-all; color:var(--ink); min-height:1.2em; letter-spacing:.5px;
+}
+.calc-live{
+  width:100%; text-align:right; font-size:clamp(1.1rem,4.5vw,1.5rem);
+  color:var(--muted); min-height:1.2em; word-break:break-all;
+}
+.calc-live.error{ color:var(--danger); }
+.calc-tools{
+  display:flex; align-items:center; gap:6px; padding:2px 14px 8px;
+}
+.calc-tools .spacer{ flex:1; }
+.calc-rule{ height:1px; background:var(--line); margin:0 16px 10px; }
+.keys{
+  display:grid; gap:10px; padding:0 12px 14px;
+  grid-template-columns:repeat(4,1fr);
+}
+.keys.sci{ grid-template-columns:repeat(7,1fr); }
+.key{
+  position:relative; display:flex; align-items:center; justify-content:center;
+  background:var(--key); color:var(--key-ink);
+  border-radius:999px; font-size:clamp(1.05rem,5vw,1.5rem); font-weight:500;
+  aspect-ratio:1/1; min-height:44px; user-select:none;
+  transition:transform .06s ease, filter .12s ease;
+}
+.keys.sci .key{ aspect-ratio:auto; height:clamp(44px,7.6vh,64px); font-size:clamp(.9rem,2.4vw,1.15rem); }
+.key:active{ transform:scale(.94); filter:brightness(1.35); }
+.key.op{ background:var(--key-op); color:var(--key-op-ink); }
+.key.eq{ background:var(--accent); color:var(--accent-ink); font-weight:600; }
+.key.fn{ font-size:clamp(.85rem,3.6vw,1.05rem); }
+.key sup{ font-size:.62em; }
+@media (orientation:landscape) and (max-height:560px){
+  .calc-wrap{ height:auto; min-height:100dvh; }
+  .keys .key{ aspect-ratio:auto; height:clamp(44px,11vh,60px); }
+  .calc-display{ padding:8px 20px 4px; }
+}
+
+/* ---------- generic UI ---------- */
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:16px;
+  padding:14px; margin:0 0 12px;
+}
+.card h3{ margin-top:0; }
+.row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.row.tight{ gap:6px; }
+.grow{ flex:1; min-width:0; }
+.field{ margin:0 0 12px; }
+.field > label, .lbl{
+  display:block; font-size:.8rem; color:var(--muted); margin-bottom:5px;
+  text-transform:uppercase; letter-spacing:.06em; font-weight:600;
+}
+input[type=text],input[type=number],input[type=search],input[type=date],
+input[type=time],input[type=datetime-local],select,textarea{
+  width:100%; background:var(--surface2); border:1px solid var(--line); color:var(--ink);
+  border-radius:12px; padding:12px; min-height:46px;
+}
+input[type=number]{ -moz-appearance:textfield; }
+textarea{ min-height:90px; resize:vertical; }
+input::placeholder,textarea::placeholder{ color:var(--faint); }
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  min-height:46px; padding:0 18px; border-radius:12px;
+  background:var(--surface2); color:var(--ink); border:1px solid var(--line);
+  font-weight:600; font-size:.95rem;
+}
+.btn:active{ filter:brightness(1.3); }
+.btn.primary{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+.btn.danger{ background:var(--danger); color:var(--danger-ink); border-color:var(--danger); }
+.btn.ghost{ background:transparent; }
+.btn.block{ width:100%; }
+.btn:disabled{ opacity:.45; }
+.seg{ display:flex; background:var(--surface2); border:1px solid var(--line); border-radius:12px; padding:3px; gap:3px; }
+.seg button{ flex:1; min-height:40px; border-radius:9px; color:var(--muted); font-weight:600; font-size:.9rem; padding:0 10px; }
+.seg button[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); }
+.chip{
+  display:inline-flex; align-items:center; gap:6px; padding:7px 12px; min-height:36px;
+  border-radius:999px; background:var(--surface2); border:1px solid var(--line);
+  color:var(--muted); font-size:.85rem; font-weight:600;
+}
+.chip[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+.chip.warn{ background:var(--warn); color:#000; border-color:var(--warn); }
+.result{
+  background:var(--surface2); border:1px solid var(--line); border-radius:14px;
+  padding:14px; margin:0 0 12px;
+}
+.result .val{ font-size:1.9rem; font-weight:600; word-break:break-all; color:var(--accent); }
+.result .sub{ color:var(--muted); font-size:.85rem; margin-top:4px; }
+.result .words{ color:var(--muted); font-size:.85rem; margin-top:8px; font-style:italic; }
+.muted{ color:var(--muted); }
+.small{ font-size:.85rem; }
+.tiny{ font-size:.78rem; }
+.mono{ font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+.center{ text-align:center; }
+.right{ text-align:right; }
+.mb0{ margin-bottom:0; } .mt8{ margin-top:8px; } .mt16{ margin-top:16px; }
+.hidden{ display:none !important; }
+.badge{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:.72rem; font-weight:700; background:var(--surface2); color:var(--muted); border:1px solid var(--line); }
+.badge.ok{ background:var(--accent-soft); color:var(--ok); border-color:var(--ok); }
+.badge.err{ background:var(--danger); color:var(--danger-ink); border-color:var(--danger); }
+.badge.warn{ background:var(--warn); color:#000; border-color:var(--warn); }
+
+table.data{ width:100%; border-collapse:collapse; font-size:.88rem; }
+table.data th,table.data td{ text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+table.data th{ color:var(--muted); font-size:.76rem; text-transform:uppercase; letter-spacing:.05em; }
+table.data td.num,table.data th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+.scrollx{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+.menu-item{
+  display:flex; align-items:center; gap:14px; width:100%; text-align:left;
+  padding:14px; border-radius:14px; background:var(--surface); border:1px solid var(--line);
+  margin-bottom:10px; min-height:60px;
+}
+.menu-item .ic{ font-size:1.5rem; width:34px; text-align:center; }
+.menu-item .t{ font-weight:600; }
+.menu-item .d{ color:var(--muted); font-size:.82rem; }
+
+.list-row{
+  display:flex; gap:10px; align-items:flex-start; padding:12px;
+  border-bottom:1px solid var(--line);
+}
+.list-row .body{ flex:1; min-width:0; }
+.list-row .expr{ font-size:1rem; word-break:break-word; }
+.list-row .res{ font-weight:600; color:var(--accent); word-break:break-word; }
+.list-row .meta{ color:var(--muted); font-size:.78rem; margin-top:3px; }
+.list-row .tick{ min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; }
+.daysep{ padding:14px 12px 6px; color:var(--muted); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; position:sticky; top:65px; background:var(--bg); z-index:5; }
+.empty{ padding:40px 20px; text-align:center; color:var(--muted); }
+.empty .big{ font-size:2rem; margin-bottom:8px; }
+
+.tallybar{
+  position:sticky; bottom:0; z-index:15; display:flex; gap:10px; align-items:center;
+  padding:10px 12px; background:var(--surface); border-top:1px solid var(--line);
+}
+.tallybar .sum{ flex:1; font-weight:600; }
+.tallybar .sum span{ color:var(--accent); }
+
+.sheet-backdrop{
+  position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:60;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.sheet{
+  width:100%; max-width:640px; max-height:88dvh; overflow:auto;
+  background:var(--bg); border:1px solid var(--line); border-radius:20px 20px 0 0;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+.sheet h3{ display:flex; align-items:center; }
+.sheet h3 .x{ margin-left:auto; }
+@media (min-width:640px){
+  .sheet-backdrop{ align-items:center; }
+  .sheet{ border-radius:20px; }
+}
+.toast{
+  position:fixed; left:50%; transform:translateX(-50%); bottom:24px; z-index:90;
+  background:var(--surface2); color:var(--ink); border:1px solid var(--line);
+  padding:12px 18px; border-radius:999px; box-shadow:var(--shadow); max-width:90vw;
+  text-align:center; font-size:.9rem;
+}
+.tanks{ display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:start; }
+.tankcol{ display:flex; flex-direction:column; gap:8px; }
+.tankbtn{
+  min-height:48px; border-radius:12px; background:var(--surface2); border:1px solid var(--line);
+  color:var(--ink); font-weight:600; display:flex; align-items:center; justify-content:center; padding:4px;
+  font-size:.9rem;
+}
+.tankbtn[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+.tankw{ align-self:center; width:48px; height:48px; border-radius:999px; background:var(--surface2); border:1px solid var(--line); color:var(--muted); font-weight:700; }
+.gradecard{ border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:10px; background:var(--surface); }
+.gradecard .name{ font-weight:600; }
+.bar{ height:8px; border-radius:999px; background:var(--surface2); overflow:hidden; margin:8px 0 4px; }
+.bar i{ display:block; height:100%; background:var(--accent); }
+.kv{ display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:.88rem; }
+.kv .k{ color:var(--muted); }
+.kv .v{ font-variant-numeric:tabular-nums; font-weight:600; }
+.live-dot{ display:inline-block; width:8px; height:8px; border-radius:999px; background:var(--accent); margin-right:6px; animation:pulse 2s infinite; }
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.25} }
+.stopped .live-dot{ background:var(--warn); }
+
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:420px){ .grid2{ grid-template-columns:1fr; } }
+
+/* ---------- report preview on screen ---------- */
+.prprev{ font-size:.82rem; }
+.prprev table{ width:100%; border-collapse:collapse; margin-bottom:10px; }
+.prprev th,.prprev td{ border:1px solid var(--line); padding:4px 6px; text-align:left; vertical-align:top; }
+.prprev th{ background:var(--surface2); }
+.prprev td.num,.prprev th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+.prprev .pr-h1{ font-size:1.1rem; font-weight:700; }
+.prprev .pr-head{ border-bottom:2px solid var(--line); padding-bottom:8px; margin-bottom:10px; }
+.prprev .pr-meta span{ display:inline-block; margin-right:14px; color:var(--muted); font-size:.78rem; }
+.prprev .pr-sec h3{ font-size:.95rem; margin:12px 0 4px; }
+.prprev .pr-foot{ border-top:1px solid var(--line); margin-top:10px; padding-top:6px; color:var(--muted); font-size:.78rem; }
+.prprev .pr-sign{ display:flex; gap:16px; margin-top:22px; }
+.prprev .pr-sign div{ flex:1; border-top:1px solid var(--line); padding-top:4px; color:var(--muted); font-size:.75rem; }
+
+/* ---------- print ---------- */
+#printArea{ display:none; }
+@media print{
+  /* Always print light. AMOLED must never reach paper. */
+  :root, :root[data-theme]{
+    --bg:#FFFFFF; --surface:#FFFFFF; --surface2:#FFFFFF; --line:#000000;
+    --ink:#000000; --muted:#333333; --faint:#555555;
+    --accent:#000000; --accent-ink:#FFFFFF; --accent-soft:#FFFFFF;
+    --danger:#000000; --warn:#000000; --ok:#000000; --shadow:none;
+  }
+  html,body{ background:#FFFFFF !important; color:#000000 !important; }
+  #app,.no-print,.topbar,.keys,.calc-tools,.tallybar,.sheet-backdrop,.toast{ display:none !important; }
+  #printArea{ display:block !important; }
+  @page{ size:A4 portrait; margin:15mm 12mm; }
+  :root[data-page="letter"] #printArea{ }
+  body{ font-size:11pt; }
+  .pr-h1{ font-size:16pt; margin:0 0 2mm; }
+  .pr-head{ border-bottom:1.2pt solid #000; padding-bottom:3mm; margin-bottom:5mm; }
+  .pr-meta{ font-size:9.5pt; color:#000; }
+  .pr-meta span{ display:inline-block; margin-right:8mm; }
+  .pr-sec{ margin:0 0 6mm; break-inside:avoid; }
+  .pr-sec h3{ font-size:12pt; border-bottom:.6pt solid #000; padding-bottom:1mm; margin-bottom:2mm; }
+  table.pr{ width:100%; border-collapse:collapse; font-size:9.5pt; }
+  table.pr th,table.pr td{ border:.5pt solid #000; padding:1.6mm 2mm; text-align:left; vertical-align:top; }
+  table.pr th{ background:#E8E8E8; font-weight:700;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  table.pr td.num,table.pr th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  thead{ display:table-header-group; }
+  tfoot{ display:table-footer-group; }
+  tr,.pr-card{ break-inside:avoid; }
+  .page-break{ break-before:page; }
+  .pr-foot{ margin-top:6mm; border-top:.6pt solid #000; padding-top:2mm; font-size:9pt; }
+  .pr-sign{ margin-top:14mm; display:flex; gap:12mm; break-inside:avoid; }
+  .pr-sign div{ flex:1; border-top:.6pt solid #000; padding-top:1.5mm; font-size:9pt; }
+  .pr-cols{ column-count:2; column-gap:8mm; }
+  .pr-cols .pr-card{ break-inside:avoid; margin-bottom:3mm; }
+}
+:root[data-page="letter"]{ }
+@media print{ :root[data-page="letter"]{ } }
+</style>
+<style id="pageSizeStyle">@page{ size:A4 portrait; margin:15mm 12mm; }</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ==================== CALCULATOR ==================== -->
+<section id="scr-calc" class="screen active" aria-label="Calculator">
+  <div class="calc-wrap">
+    <div class="calc-display">
+      <div class="calc-expr" id="calcExpr" aria-live="off">0</div>
+      <div class="calc-live" id="calcLive" aria-live="polite"></div>
+    </div>
+    <div class="calc-tools no-print">
+      <button class="iconbtn" id="btnHistory" title="History" aria-label="History">🕘</button>
+      <button class="iconbtn" id="btnConvert" title="Converter" aria-label="Unit converter">📏</button>
+      <button class="iconbtn" id="btnSci" title="Scientific keys" aria-label="Scientific keys" aria-pressed="false">√π</button>
+      <button class="iconbtn" id="btnTools" title="Ship tools" aria-label="Ship tools">⚓</button>
+      <button class="iconbtn" id="btnSettings" title="Settings" aria-label="Settings">⚙</button>
+      <span class="spacer"></span>
+      <button class="iconbtn" id="btnExportChip" title="Export backup" aria-label="Export backup" hidden>⬆</button>
+      <button class="iconbtn accent" id="btnBack" title="Backspace — hold to clear" aria-label="Backspace">⌫</button>
+    </div>
+    <div class="calc-rule"></div>
+    <div class="keys no-print" id="keys"></div>
+  </div>
+</section>
+
+<!-- ==================== HISTORY ==================== -->
+<section id="scr-history" class="screen" aria-label="History">
+  <div class="topbar no-print">
+    <button class="iconbtn" data-back aria-label="Back">←</button>
+    <h2>History</h2>
+    <button class="iconbtn" id="histSelectToggle" title="Select rows" aria-pressed="false" aria-label="Select rows">☑</button>
+    <button class="iconbtn" id="histPrint" title="Print this list" aria-label="Print this list">🖨</button>
+  </div>
+  <div class="pad" style="padding-bottom:8px">
+    <input type="search" id="histSearch" placeholder="Search expression, result or note" aria-label="Search history">
+    <div class="row tight mt8 scrollx" id="histFilters" style="flex-wrap:nowrap;padding-bottom:4px"></div>
+  </div>
+  <div id="histList" style="flex:1"></div>
+  <div class="tallybar no-print hidden" id="tallyBar">
+    <div class="sum" id="tallySum">0 selected</div>
+    <button class="btn ghost" id="tallyPrint">Print selection</button>
+    <button class="btn ghost" id="tallyClear">Clear</button>
+  </div>
+</section>
+
+<!-- ==================== CONVERTER ==================== -->
+<section id="scr-convert" class="screen" aria-label="Unit converter">
+  <div class="topbar no-print">
+    <button class="iconbtn" data-back aria-label="Back">←</button>
+    <h2>Converter</h2>
+  </div>
+  <div class="pad">
+    <div class="field">
+      <label for="cvCat">Category</label>
+      <select id="cvCat"></select>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="cvFromVal">From</label>
+        <input type="number" id="cvFromVal" inputmode="decimal" placeholder="0">
+        <select id="cvFromUnit" style="margin-top:8px"></select>
+      </div>
+      <div class="field">
+        <label for="cvToVal">To</label>
+        <input type="text" id="cvToVal" readonly aria-live="polite">
+        <select id="cvToUnit" style="margin-top:8px"></select>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn" id="cvSwap">⇅ Swap units</button>
+      <button class="btn primary grow" id="cvSave">✓ Save to history</button>
+    </div>
+    <div class="field mt16">
+      <label for="cvNote">Note (optional)</label>
+      <input type="text" id="cvNote" placeholder="Cargo, port, reference…">
+    </div>
+    <h3 class="mt16">Common conversions</h3>
+    <div id="cvQuick" class="row tight"></div>
+    <h3 class="mt16">Previous conversions</h3>
+    <div id="cvPrev"></div>
+  </div>
+</section>
+
+<!-- ==================== SHIP TOOLS MENU ==================== -->
+<section id="scr-tools" class="screen" aria-label="Ship tools">
+  <div class="topbar no-print">
+    <button class="iconbtn" data-back aria-label="Back">←</button>
+    <h2>Ship tools</h2>
+  </div>
+  <div class="pad">
+    <h3 class="muted small" style="text-transform:uppercase;letter-spacing:.08em">Cargo operation</h3>
+    <button class="menu-item" data-nav="scr-cargo"><span class="ic">🚢</span><span class="grow"><span class="t">Cargo operation · Live</span><br><span class="d">Multi-grade loading / discharging, live rate, stoppages, ETC</span></span></button>
+    <button class="menu-item" data-nav="scr-m3mt"><span class="ic">⚖</span><span class="grow"><span class="t">m³ ⇆ MT</span><br><span class="d">Volume ↔ weight at cargo-temperature density</span></span></button>
+    <button class="menu-item" data-nav="scr-etc"><span class="ic">⏳</span><span class="grow"><span class="t">Quick ETC</span><br><span class="d">One-shot completion time from quantity and rate</span></span></button>
+    <h3 class="muted small mt16" style="text-transform:uppercase;letter-spacing:.08em">Calculators</h3>
+    <button class="menu-item" data-nav="scr-line"><span class="ic">📏</span><span class="grow"><span class="t">Line displacement</span><br><span class="d">Volume held in a pipeline — diameter × length</span></span></button>
+    <button class="menu-item" data-nav="scr-flow"><span class="ic">🌊</span><span class="grow"><span class="t">Flow rate</span><br><span class="d">m³/hr from line size and velocity</span></span></button>
+    <button class="menu-item" data-nav="scr-rinse"><span class="ic">🚿</span><span class="grow"><span class="t">Tank rinsing</span><br><span class="d">Fresh water for tank cleaning machines</span></span></button>
+    <button class="menu-item" data-nav="scr-interp"><span class="ic">📐</span><span class="grow"><span class="t">Interpolation</span><br><span class="d">Solve Y for any X between two known points</span></span></button>
+    <h3 class="muted small mt16" style="text-transform:uppercase;letter-spacing:.08em">Records</h3>
+    <button class="menu-item" data-nav="scr-history"><span class="ic">🕘</span><span class="grow"><span class="t">History</span><br><span class="d">Every saved calculation, newest first</span></span></button>
+    <button class="menu-item" data-nav="scr-report"><span class="ic">🖨</span><span class="grow"><span class="t">Reports</span><br><span class="d">Calculation log, audit trail, cargo sheet</span></span></button>
+    <button class="menu-item" data-nav="scr-import"><span class="ic">📥</span><span class="grow"><span class="t">Bulk import</span><br><span class="d">Paste from a spreadsheet or upload a CSV</span></span></button>
+  </div>
+</section>
+
+<!-- ==================== m³ ⇆ MT ==================== -->
+<section id="scr-m3mt" class="screen" aria-label="Cubic metres to metric tonnes">
+  <div class="topbar no-print">
+    <button class="iconbtn" data-back aria-label="Back">←</button><h2>m³ ⇆ MT</h2>
+  </div>
+  <div class="pad">
+    <div class="field"><span class="lbl">Direction</span>
+      <div class="seg" id="mmDir"><button data-v="v2w" aria-pressed="true">m³ → MT</button><button data-v="w2v" aria-pressed="false">MT → m³</button></div>
+    </div>
+    <div class="field"><label for="mmQty" id="mmQtyLbl">Quantity (m³)</label><input type="number" id="mmQty" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label for="mmDen">Density @ cargo temp (t/m³)</label><input type="number" id="mmDen" inputmode="decimal" step="0.0001" placeholder="0.8500"></div>
+    <div class="field"><label for="mmTemp">Cargo temp (°C — recorded, not applied)</label><input type="number" id="mmTemp" inputmode="decimal" placeholder="—"></div>
+    <div class="field"><label for="mmNote">Note (optional)</label><input type="text" id="mmNote" placeholder="Cargo, port, tank…"></div>
+    <div class="result"><div class="lbl" id="mmOutLbl">Weight</div><div class="val" id="mmOut">—</div><div class="words" id="mmWords"></div></div>
+    <div class="row"><button class="btn primary grow" data-save="m3mt">✓ Save to history</button><button class="btn" data-printone="m3mt">🖨 Print</button><button class="btn ghost" data-clear="m3mt">Clear</button></div>
+    <h3 class="mt16">Previous calculations</h3><div data-prev="m3mt"></div>
+  </div>
+</section>
+
+<!-- ==================== QUICK ETC ==================== -->
+<section id="scr-etc" class="screen" aria-label="Quick ETC">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Quick ETC</h2></div>
+  <div class="pad">
+    <div class="grid2">
+      <div class="field"><span class="lbl">Unit</span><div class="seg" id="etUnit"><button data-v="m³" aria-pressed="true">m³</button><button data-v="MT" aria-pressed="false">MT</button></div></div>
+      <div class="field"><span class="lbl">Operation</span><div class="seg" id="etOp"><button data-v="Loading" aria-pressed="true">Loading</button><button data-v="Discharging" aria-pressed="false">Discharging</button></div></div>
+    </div>
+    <div class="field"><label for="etTotal">Total quantity</label><input type="number" id="etTotal" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label for="etDone">Quantity done</label><input type="number" id="etDone" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label for="etRate">Rate (per hour)</label><input type="number" id="etRate" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label for="etFrom">Counting from</label><input type="datetime-local" id="etFrom"></div>
+    <div class="field"><label for="etNote">Note (optional)</label><input type="text" id="etNote" placeholder="Berth, grade…"></div>
+    <div class="result"><div class="lbl">Time remaining</div><div class="val" id="etOut">—</div><div class="sub" id="etOut2">Estimated completion —</div><div class="words" id="etWords"></div></div>
+    <div class="row"><button class="btn primary grow" data-save="etc">✓ Save to history</button><button class="btn" data-printone="etc">🖨 Print</button><button class="btn ghost" data-clear="etc">Clear</button></div>
+    <h3 class="mt16">Previous calculations</h3><div data-prev="etc"></div>
+  </div>
+</section>
+
+<!-- ==================== LINE DISPLACEMENT ==================== -->
+<section id="scr-line" class="screen" aria-label="Line displacement">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Line displacement</h2></div>
+  <div class="pad">
+    <div class="field"><div class="seg" id="lnMode"><button data-v="single" aria-pressed="true">Single line</button><button data-v="multi" aria-pressed="false">Multiple lines</button></div></div>
+    <div id="lnSingle">
+      <div class="field"><label for="lnDia">Diameter (inches)</label><input type="number" id="lnDia" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label for="lnLen">Length</label><input type="number" id="lnLen" inputmode="decimal" placeholder="0">
+        <div class="seg mt8" id="lnLenUnit"><button data-v="m" aria-pressed="true">m</button><button data-v="ft" aria-pressed="false">ft</button></div></div>
+    </div>
+    <div id="lnMulti" class="hidden">
+      <div class="scrollx"><table class="data" id="lnTable"><thead><tr><th>Line</th><th class="num">Dia (in)</th><th class="num">Length (m)</th><th></th></tr></thead><tbody></tbody></table></div>
+      <button class="btn mt8" id="lnAdd">+ Add line</button>
+    </div>
+    <div class="field mt16"><label for="lnNote">Note (optional)</label><input type="text" id="lnNote" placeholder="Port, berth, line name…"></div>
+    <div class="result"><div class="lbl" id="lnOutLbl">Volume in line</div><div class="val" id="lnOut">—</div><div class="sub" id="lnOut2"></div><div class="words" id="lnWords"></div></div>
+    <div class="row"><button class="btn primary grow" data-save="line">✓ Save to history</button><button class="btn" data-printone="line">🖨 Print</button><button class="btn ghost" data-clear="line">Clear</button></div>
+    <h3 class="mt16">Previous calculations</h3><div data-prev="line"></div>
+  </div>
+</section>
+
+<!-- ==================== FLOW RATE ==================== -->
+<section id="scr-flow" class="screen" aria-label="Flow rate">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Flow rate</h2></div>
+  <div class="pad">
+    <div class="field"><label for="flDia">Diameter (inches)</label><input type="number" id="flDia" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label for="flVel">Velocity (m/s)</label><input type="number" id="flVel" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label for="flNote">Note (optional)</label><input type="text" id="flNote" placeholder="Line, berth…"></div>
+    <div class="result"><div class="lbl">Flow rate</div><div class="val" id="flOut">—</div><div class="sub" id="flOut2"></div><div class="words" id="flWords"></div></div>
+    <div class="row"><button class="btn primary grow" data-save="flow">✓ Save to history</button><button class="btn" data-printone="flow">🖨 Print</button><button class="btn ghost" data-clear="flow">Clear</button></div>
+    <h3 class="mt16">Previous calculations</h3><div data-prev="flow"></div>
+  </div>
+</section>
+
+<!-- ==================== TANK RINSING ==================== -->
+<section id="scr-rinse" class="screen" aria-label="Tank rinsing">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Tank rinsing · fresh water</h2></div>
+  <div class="pad">
+    <div class="card">
+      <h4>Fixed machines</h4>
+      <div class="row">
+        <div class="grow"><span class="lbl">Output (m³/hr)</span><input type="number" id="rnFxOut" inputmode="decimal" placeholder="0"></div>
+        <div class="grow"><span class="lbl">Machines</span><input type="number" id="rnFxN" inputmode="numeric" placeholder="0"></div>
+        <div class="grow"><span class="lbl">Minutes</span><input type="number" id="rnFxMin" inputmode="numeric" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h4 class="row" style="justify-content:space-between">Portable machines
+        <button class="chip" id="rnPtToggle" aria-pressed="false">off</button></h4>
+      <div class="row" id="rnPtFields" hidden>
+        <div class="grow"><span class="lbl">Output (m³/hr)</span><input type="number" id="rnPtOut" inputmode="decimal" placeholder="0"></div>
+        <div class="grow"><span class="lbl">Machines</span><input type="number" id="rnPtN" inputmode="numeric" placeholder="0"></div>
+        <div class="grow"><span class="lbl">Minutes</span><input type="number" id="rnPtMin" inputmode="numeric" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="result"><div class="lbl">Total fresh water</div><div class="val" id="rnOut">0.00 m³</div><div class="sub" id="rnOut2">0 tanks · 0.00 m³ per tank</div><div class="words" id="rnWords"></div></div>
+    <p class="small muted">Set the machine figures above, then tap tanks to apply. Tap a set tank again to clear it. The round <strong>W</strong> button sets both wings together.</p>
+    <div class="row tight" style="margin-bottom:10px">
+      <button class="btn ghost" id="rnAll">✓✓ Select all tanks</button>
+      <button class="btn ghost" id="rnNone">Clear all</button>
+      <button class="btn ghost" id="rnManage">Manage tanks</button>
+    </div>
+    <div class="row tight muted tiny" style="justify-content:space-between"><span>Port</span><span>Starboard</span></div>
+    <div class="tanks" id="rnTanks"></div>
+    <div class="field mt16"><label for="rnNote">Note (optional)</label><input type="text" id="rnNote" placeholder="Tank cleaning plan…"></div>
+    <div class="row"><button class="btn primary grow" data-save="rinse">✓ Save to history</button><button class="btn" data-printone="rinse">🖨 Print</button><button class="btn ghost" data-clear="rinse">Clear</button></div>
+    <h3 class="mt16">Previous calculations</h3><div data-prev="rinse"></div>
+  </div>
+</section>
+
+<!-- ==================== INTERPOLATION ==================== -->
+<section id="scr-interp" class="screen" aria-label="Interpolation">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Interpolation</h2></div>
+  <div class="pad">
+    <div class="card"><h4>Known point 1</h4><div class="row">
+      <div class="grow"><span class="lbl">X₁</span><input type="number" id="ipX1" inputmode="decimal"></div>
+      <div class="grow"><span class="lbl">Y₁</span><input type="number" id="ipY1" inputmode="decimal"></div></div></div>
+    <div class="card"><h4>Known point 2</h4><div class="row">
+      <div class="grow"><span class="lbl">X₂</span><input type="number" id="ipX2" inputmode="decimal"></div>
+      <div class="grow"><span class="lbl">Y₂</span><input type="number" id="ipY2" inputmode="decimal"></div></div></div>
+    <div class="field"><span class="lbl">Solve for</span>
+      <div class="seg" id="ipFor"><button data-v="y" aria-pressed="true">Y from X</button><button data-v="x" aria-pressed="false">X from Y</button></div></div>
+    <div class="field"><label for="ipIn" id="ipInLbl">X</label><input type="number" id="ipIn" inputmode="decimal"></div>
+    <div class="field"><label for="ipNote">Note (optional)</label><input type="text" id="ipNote" placeholder="Table, sounding, ullage…"></div>
+    <div class="result"><div class="lbl" id="ipOutLbl">Y =</div><div class="val" id="ipOut">—</div><div class="words" id="ipWords"></div></div>
+    <div class="row" style="margin-bottom:12px"><span class="lbl mb0" style="margin:0">Decimals</span>
+      <button class="btn" id="ipDecMinus">−</button><strong id="ipDec">3</strong><button class="btn" id="ipDecPlus">+</button></div>
+    <div class="row"><button class="btn primary grow" data-save="interp">✓ Save to history</button><button class="btn" data-printone="interp">🖨 Print</button><button class="btn ghost" data-clear="interp">Clear</button></div>
+    <h3 class="mt16">Previous calculations</h3><div data-prev="interp"></div>
+  </div>
+</section>
+
+<!-- ==================== CARGO OPERATION LIST ==================== -->
+<section id="scr-cargo" class="screen" aria-label="Cargo operations">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Cargo operation</h2>
+    <button class="iconbtn accent" id="cgNew" title="New operation" aria-label="New operation">＋</button></div>
+  <div class="pad"><div id="cgList"></div></div>
+</section>
+
+<!-- ==================== CARGO OPERATION DETAIL ==================== -->
+<section id="scr-cargoop" class="screen" aria-label="Cargo operation detail">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2 id="cgTitle">Operation</h2>
+    <button class="iconbtn" id="cgLog" title="Log" aria-label="Operation log">☰</button>
+    <button class="iconbtn" id="cgPrint" title="Print cargo sheet" aria-label="Print cargo sheet">🖨</button></div>
+  <div class="pad">
+    <div class="card" id="cgSummary"></div>
+    <div class="row tight" style="margin-bottom:12px">
+      <button class="btn primary grow" id="cgUpdate">✓ Update figure</button>
+      <button class="btn" id="cgStop">⏸ Stoppage</button>
+    </div>
+    <div id="cgGrades"></div>
+    <h3 class="mt16">Figures log</h3>
+    <div class="scrollx"><table class="data" id="cgUpdates"><thead><tr><th>Time</th><th>Grade</th><th class="num">Onboard</th><th class="num">Since last</th><th class="num">Rate/hr</th><th>Note</th></tr></thead><tbody></tbody></table></div>
+    <h3 class="mt16">Stoppages</h3><div id="cgStops"></div>
+    <h3 class="mt16">Hourly figures</h3>
+    <div class="scrollx"><table class="data" id="cgHourly"><thead><tr><th>Hour</th><th class="num">Quantity</th><th class="num">Hourly rate</th></tr></thead><tbody></tbody></table></div>
+    <div class="row mt16"><button class="btn" id="cgEdit">Edit operation</button><button class="btn" id="cgClose">Close operation</button><button class="btn danger" id="cgDelete">Delete</button></div>
+  </div>
+</section>
+
+<!-- ==================== REPORTS ==================== -->
+<section id="scr-report" class="screen" aria-label="Reports">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Reports</h2></div>
+  <div class="pad">
+    <div class="field"><span class="lbl">Report</span>
+      <select id="rpKind">
+        <option value="log">Calculation log</option>
+        <option value="audit">Audit trail</option>
+        <option value="cargo">Cargo operation sheet</option>
+      </select></div>
+    <div id="rpCargoPick" class="field hidden"><span class="lbl">Operation</span><select id="rpCargoOp"></select></div>
+    <div class="grid2">
+      <div class="field"><label for="rpFrom">From</label><input type="date" id="rpFrom"></div>
+      <div class="field"><label for="rpTo">To</label><input type="date" id="rpTo"></div>
+    </div>
+    <div class="row tight" style="margin-bottom:12px">
+      <button class="chip" data-range="today">Today</button>
+      <button class="chip" data-range="7">Last 7 days</button>
+      <button class="chip" data-range="30">Last 30 days</button>
+      <button class="chip" data-range="all">All</button>
+    </div>
+    <div class="field" id="rpTypesWrap"><span class="lbl">Include</span><div class="row tight" id="rpTypes"></div></div>
+    <div class="row tight" style="margin-bottom:12px">
+      <button class="chip" id="rpSign" aria-pressed="false">Signature block</button>
+      <button class="chip" id="rpLand" aria-pressed="false">Landscape</button>
+    </div>
+    <div class="row"><button class="btn primary grow" id="rpPrint">🖨 Preview &amp; print</button></div>
+    <h3 class="mt16">Preview</h3>
+    <div class="card" id="rpPreview" style="overflow:auto"></div>
+    <p class="tiny muted">Chrome adds its own page header and footer. Turn them off in the print dialogue under <em>More settings → Headers and footers</em>, on desktop and on Android.</p>
+  </div>
+</section>
+
+<!-- ==================== BULK IMPORT ==================== -->
+<section id="scr-import" class="screen" aria-label="Bulk import">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Bulk import</h2></div>
+  <div class="pad">
+    <p class="small muted">Type rows in Excel or Google Sheets, copy the block, and paste it below. Keep the <strong>id</strong> column when you are editing rows you exported — a filled id updates the existing record, a blank id creates a new one.</p>
+    <div class="row tight" style="margin-bottom:12px">
+      <button class="btn" id="imTemplate">⬇ Download template (.csv)</button>
+      <button class="btn" id="imExportCsv">⬇ Export all as CSV</button>
+    </div>
+    <div class="field"><label for="imPaste">Paste from spreadsheet</label>
+      <textarea id="imPaste" placeholder="id&#9;Date&#9;Time&#9;Type&#9;Expression&#9;Result&#9;Note"></textarea></div>
+    <div class="row"><button class="btn primary grow" id="imParsePaste">Check rows</button>
+      <label class="btn" for="imFile">📄 Upload .csv</label>
+      <input type="file" id="imFile" accept=".csv,text/csv" class="hidden"></div>
+    <div id="imMapWrap" class="card hidden"><h4>Match the columns</h4><div id="imMap"></div>
+      <button class="btn primary mt8" id="imRemap">Re-check with this mapping</button></div>
+    <div id="imPreviewWrap" class="hidden">
+      <h3 class="mt16">Preview <span id="imCounts" class="small muted"></span></h3>
+      <div class="scrollx"><table class="data" id="imTable"><thead></thead><tbody></tbody></table></div>
+      <div class="row mt8"><button class="btn primary grow" id="imApply">Import valid rows</button>
+        <button class="btn ghost" id="imCancel">Cancel</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SETTINGS ==================== -->
+<section id="scr-settings" class="screen" aria-label="Settings">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Settings</h2></div>
+  <div class="pad">
+
+    <div class="card">
+      <h3>Appearance</h3>
+      <span class="lbl">Theme</span>
+      <div class="row tight" id="setThemes">
+        <button class="chip" data-theme="amoled">AMOLED Black</button>
+        <button class="chip" data-theme="light">Light</button>
+        <button class="chip" data-theme="dim">Dim Grey</button>
+        <button class="chip" data-theme="hc">High Contrast</button>
+      </div>
+      <div class="mt16"><span class="lbl">Thousands separator in results</span>
+        <div class="seg" id="setSep"><button data-v="on" aria-pressed="true">On</button><button data-v="off" aria-pressed="false">Off</button></div></div>
+      <div class="mt16"><span class="lbl">Default angle mode</span>
+        <div class="seg" id="setAngle"><button data-v="deg" aria-pressed="true">Degrees</button><button data-v="rad" aria-pressed="false">Radians</button></div></div>
+      <p class="tiny muted mt8">Results show up to 12 significant figures with trailing zeros stripped. The full value is always stored, so reports and exports never lose precision.</p>
+    </div>
+
+    <div class="card">
+      <h3>Report header</h3>
+      <div class="field"><label for="setShip">Ship name</label><input type="text" id="setShip" placeholder="MT …"></div>
+      <div class="field"><label for="setBy">Prepared by (name / rank)</label><input type="text" id="setBy" placeholder="C/O …"></div>
+      <div class="field mb0"><span class="lbl">Paper size</span>
+        <div class="seg" id="setPaper"><button data-v="A4" aria-pressed="true">A4</button><button data-v="Letter" aria-pressed="false">Letter</button></div></div>
+    </div>
+
+    <div class="card">
+      <h3>Data</h3>
+      <div class="row" style="margin-bottom:10px"><div class="grow"><strong>Export backup</strong><br><span class="small muted">One JSON file — merge-safe, phone ↔ desktop</span></div><button class="btn" id="stExport">Export</button></div>
+      <div class="row" style="margin-bottom:10px"><div class="grow"><strong>Share backup</strong><br><span class="small muted">Send the JSON to Drive, Keep or email</span></div><button class="btn" id="stShare">Share</button></div>
+      <div class="row" style="margin-bottom:10px"><div class="grow"><strong>Import &amp; merge</strong><br><span class="small muted">Adds new records; newest version wins. Nothing is wiped.</span></div>
+        <label class="btn" for="stImportFile">Import</label><input type="file" id="stImportFile" accept=".json,application/json" class="hidden"></div>
+      <div class="row" style="margin-bottom:10px"><div class="grow"><strong>Export as CSV</strong><br><span class="small muted">For Excel — one row per record</span></div><button class="btn" id="stCsv">CSV</button></div>
+      <div class="row" style="margin-bottom:10px"><div class="grow"><strong>Undo last import</strong><br><span class="small muted" id="stBatchInfo">No import to undo</span></div><button class="btn" id="stUndoImport" disabled>Undo</button></div>
+      <div class="row" style="margin-bottom:10px"><div class="grow"><strong>Restore a snapshot</strong><br><span class="small muted" id="stSnapInfo">—</span></div><button class="btn" id="stSnaps">Open</button></div>
+      <div class="row"><div class="grow"><strong>Deleted records</strong><br><span class="small muted" id="stBinInfo">—</span></div><button class="btn" id="stBin">Open</button></div>
+    </div>
+
+    <div class="card">
+      <h3>Auto-save</h3>
+      <div class="row" style="margin-bottom:10px"><div class="grow"><strong>Backup file on this PC</strong><br><span class="small muted" id="stFsInfo">Not configured</span></div><button class="btn" id="stFsPick">Choose</button></div>
+      <div class="kv"><span class="k">Last file write</span><span class="v" id="stFsLast">—</span></div>
+      <div class="kv"><span class="k">Last snapshot</span><span class="v" id="stSnapLast">—</span></div>
+      <div class="kv"><span class="k">Snapshots kept</span><span class="v" id="stSnapCount">—</span></div>
+      <div class="kv"><span class="k">Last exported file</span><span class="v" id="stLastExport">—</span></div>
+      <div class="kv"><span class="k">Persistent storage</span><span class="v" id="stPersist">—</span></div>
+      <p class="tiny muted mt8">There is no Save button. Every change is written to the database as you make it, so closing the app cannot lose an entry.</p>
+    </div>
+
+    <div class="card">
+      <h3>About</h3>
+      <p class="small mb0">Le Calc <span id="stVersion"></span> — scientific calculator, unit converter and ship cargo calculators, with every calculation kept and time-stamped.</p>
+      <div class="row mt8"><button class="btn" id="stWhatsNew">What's new</button><button class="btn" id="stHelp">Help &amp; printing</button><button class="btn" id="stInstall" hidden>Install</button></div>
+      <div class="kv mt8"><span class="k">Records</span><span class="v" id="stCount">—</span></div>
+      <div class="kv"><span class="k">Device</span><span class="v mono" id="stDevice">—</span></div>
+      <div class="kv"><span class="k">Schema</span><span class="v" id="stSchema">—</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== HELP ==================== -->
+<section id="scr-help" class="screen" aria-label="Help">
+  <div class="topbar no-print"><button class="iconbtn" data-back aria-label="Back">←</button><h2>Help &amp; printing</h2></div>
+  <div class="pad">
+    <div class="card"><h3>Printing</h3>
+      <p class="small">Reports always print on a white background with black text, whatever theme you use on screen.</p>
+      <p class="small">Chrome adds its own header and footer — the URL, the date and the page number. Turn them off once in the print dialogue: <strong>More settings → Headers and footers</strong>. You have to do this on desktop Chrome and again on Android Chrome; the setting is remembered per device.</p>
+      <p class="small">Android's print flow ignores some page rules and renders from a snapshot, so check the first page before saving a long report as PDF. Desktop Chrome is the reliable one for multi-page reports.</p>
+    </div>
+    <div class="card"><h3>Keyboard (desktop)</h3>
+      <p class="small mono">0-9 . + - * / ( ) — type into the pad · Enter = equals · Backspace = delete · Esc = clear · h = history · % = percent</p>
+    </div>
+    <div class="card"><h3>Percent</h3>
+      <p class="small">200+10% gives 220 — the percentage is taken of the number before it. A percentage on its own, or after × and ÷, is simply the number divided by 100.</p>
+    </div>
+    <div class="card"><h3>Formulas</h3>
+      <ul class="small">
+        <li><strong>m³ ⇆ MT</strong> — MT = m³ × density; m³ = MT ÷ density.</li>
+        <li><strong>Quick ETC</strong> — remaining = total − done; hours = remaining ÷ rate.</li>
+        <li><strong>Line displacement</strong> — V = π/4 × (inches × 0.0254)² × length in metres. 1 m³ = 6.28981 bbl.</li>
+        <li><strong>Flow rate</strong> — Q = π/4 × (inches × 0.0254)² × velocity × 3600.</li>
+        <li><strong>Tank rinsing</strong> — per tank = output × machines × minutes ÷ 60, fixed plus portable; total = per tank × tanks.</li>
+        <li><strong>Interpolation</strong> — Y = Y₁ + (X − X₁) × (Y₂ − Y₁) ÷ (X₂ − X₁).</li>
+        <li><strong>Cargo operation</strong> — rate comes from the last two figures, over active time only; stopped time is excluded from every rate and ETC.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div><!-- /#app -->
+
+<div id="sheets"></div>
+<div id="printArea"></div>
+<script>
+"use strict";
+/* ============================================================
+   LE CALC — single file. Core layer.
+   ============================================================ */
+var APP = 'lecalc';
+var APP_NAME = 'Le Calc';
+var VERSION = '2.0.1';
+var SCHEMA = 1;
+var DB_NAME = 'lecalc';
+var DB_VER = 1;
+var M3_TO_BBL = 6.28981;
+var IN_TO_M = 0.0254;
+var FT_TO_M = 0.3048;
+
+var WHATS_NEW = [
+  ['2.0.1', [
+    'Installable from the home screen: proper web manifest, icons and offline caching.'
+  ]],
+  ['2.0.0', [
+    'Google-style calculator pad is now the home screen, with a full scientific keypad and a live result as you type.',
+    'Every calculation, conversion and ship figure is saved with an automatic date and time stamp.',
+    'History gained search, per-tool filters and tick-to-total — select rows and read the sum.',
+    'Cargo operation went live: multi-grade, running rate from the last two figures, stoppages excluded from every rate and ETC, hourly figures and a printable cargo sheet.',
+    'Ported from Lets Calc: m³ ⇆ MT, Quick ETC, line displacement, flow rate, tank rinsing, interpolation.',
+    'Bulk import from a spreadsheet, merge-safe JSON backup, rolling snapshots and desktop auto-save to a file.'
+  ]]
+];
+
+/* ---------------- tiny helpers ---------------- */
+function $(s, r){ return (r||document).querySelector(s); }
+function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+function el(tag, cls, txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function uid(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+    var r = Math.random()*16|0, v = c==='x'? r : (r&0x3|0x8); return v.toString(16); });
+}
+function debounce(fn, ms){ var t; return function(){ var a=arguments,s=this; clearTimeout(t);
+  t=setTimeout(function(){ fn.apply(s,a); }, ms); }; }
+function num(v){ var n = parseFloat(String(v==null?'':v).replace(/,/g,'').trim()); return isFinite(n)? n : NaN; }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+/* ---------------- number formatting ----------------
+   12 significant figures on screen, trailing zeros stripped.
+   The full float is what gets stored, exported and printed. */
+function fmtRaw(x){
+  if(x === 0) return '0';
+  var a = Math.abs(x);
+  if(a >= 1e12 || a < 1e-9){
+    return x.toExponential(11).replace(/\.?0+e/, 'e').replace(/e\+?(-?)/, 'e$1');
+  }
+  var n = Number(x.toPrecision(12));
+  var s = String(n);
+  if(/e/i.test(s)){ s = n.toFixed(12).replace(/0+$/,'').replace(/\.$/,''); }
+  return s;
+}
+function groupThousands(s){
+  var neg = s.charAt(0)==='-'; if(neg) s = s.slice(1);
+  var parts = s.split(/[eE]/), main = parts[0], expo = parts[1];
+  var dot = main.split('.');
+  dot[0] = dot[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  var out = dot.join('.') + (expo!=null ? 'e'+expo : '');
+  return (neg?'-':'') + out;
+}
+function fmtNum(x){
+  if(typeof x !== 'number' || Number.isNaN(x)) return '—';
+  if(!isFinite(x)) return x > 0 ? '∞' : '−∞';
+  var s = fmtRaw(x);
+  return S.sep ? groupThousands(s) : s;
+}
+function fmtFix(x, d){
+  if(typeof x !== 'number' || !isFinite(x)) return '—';
+  var s = x.toFixed(d);
+  return S.sep ? groupThousands(s) : s;
+}
+
+/* ---------------- time ---------------- */
+function nowMs(){ return Date.now(); }
+function two(n){ return (n<10?'0':'')+n; }
+function fmtDate(ts){ var d=new Date(ts); return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()); }
+function fmtTime(ts){ var d=new Date(ts); return two(d.getHours())+':'+two(d.getMinutes()); }
+function fmtAbs(ts){ if(!ts) return '—'; var d=new Date(ts);
+  var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return two(d.getDate())+' '+mn[d.getMonth()]+' '+d.getFullYear()+' '+two(d.getHours())+':'+two(d.getMinutes()); }
+function fmtIso(ts){
+  var d = new Date(ts), off = -d.getTimezoneOffset();
+  var sg = off >= 0 ? '+' : '-'; off = Math.abs(off);
+  return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate())+'T'+
+    two(d.getHours())+':'+two(d.getMinutes())+':'+two(d.getSeconds())+
+    sg+two(Math.floor(off/60))+':'+two(off%60);
+}
+function fmtRel(ts){
+  var s = Math.floor((Date.now()-ts)/1000);
+  if(s < 0) return 'in the future';
+  if(s < 60) return 'just now';
+  var m = Math.floor(s/60); if(m < 60) return m+' min ago';
+  var h = Math.floor(m/60); if(h < 24) return h+' h ago';
+  var d = Math.floor(h/24); if(d < 7) return d+' d ago';
+  return fmtDate(ts);
+}
+function dayKey(ts){ var d=new Date(ts); return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()); }
+function dayLabel(ts){
+  var k = dayKey(ts), t = dayKey(Date.now()), y = dayKey(Date.now()-864e5);
+  if(k === t) return 'Today';
+  if(k === y) return 'Yesterday';
+  var d = new Date(ts), mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getDate()+' '+mn[d.getMonth()]+' '+d.getFullYear();
+}
+function fmtDur(hours){
+  if(!isFinite(hours) || hours < 0) return '—';
+  var totalMin = Math.round(hours*60);
+  var d = Math.floor(totalMin/1440), h = Math.floor((totalMin%1440)/60), m = totalMin%60;
+  var out = [];
+  if(d) out.push(d+' d');
+  if(h || d) out.push(h+' h');
+  out.push(m+' min');
+  return out.join(' ');
+}
+function localInputValue(ts){
+  var d = new Date(ts);
+  return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate())+'T'+two(d.getHours())+':'+two(d.getMinutes());
+}
+function parseLocalInput(v){ if(!v) return NaN; var t = new Date(v).getTime(); return isFinite(t)? t : NaN; }
+
+/* ============================================================
+   INDEXEDDB
+   ============================================================ */
+var _db = null;
+function dbOpen(){
+  if(_db) return Promise.resolve(_db);
+  return new Promise(function(res, rej){
+    var rq = indexedDB.open(DB_NAME, DB_VER);
+    rq.onupgradeneeded = function(ev){
+      var db = rq.result, old = ev.oldVersion;
+      /* Append-only migrations. Never wipe, never recreate an existing store. */
+      if(old < 1){
+        if(!db.objectStoreNames.contains('records')){
+          var r = db.createObjectStore('records', {keyPath:'id'});
+          r.createIndex('type', 'type', {unique:false});
+          r.createIndex('createdAt', 'createdAt', {unique:false});
+        }
+        if(!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', {keyPath:'k'});
+        if(!db.objectStoreNames.contains('log')){
+          var l = db.createObjectStore('log', {keyPath:'id'});
+          l.createIndex('at', 'at', {unique:false});
+        }
+        if(!db.objectStoreNames.contains('backups')) db.createObjectStore('backups', {keyPath:'id'});
+      }
+    };
+    rq.onsuccess = function(){ _db = rq.result;
+      _db.onversionchange = function(){ try{ _db.close(); }catch(e){} _db = null; };
+      res(_db); };
+    rq.onerror = function(){ rej(rq.error); };
+  });
+}
+function idbReq(store, mode, fn){
+  return dbOpen().then(function(db){
+    return new Promise(function(res, rej){
+      var tx = db.transaction(store, mode), st = tx.objectStore(store), out;
+      try{ out = fn(st); }catch(e){ rej(e); return; }
+      tx.oncomplete = function(){ res(out && out.result !== undefined ? out.result : out); };
+      tx.onerror = function(){ rej(tx.error); };
+      tx.onabort = function(){ rej(tx.error); };
+    });
+  });
+}
+function dbGet(store, key){ return idbReq(store, 'readonly', function(st){ return st.get(key); }); }
+function dbGetAll(store){ return idbReq(store, 'readonly', function(st){ return st.getAll(); }); }
+function dbPut(store, val){ return idbReq(store, 'readwrite', function(st){ st.put(val); return val; }); }
+function dbDel(store, key){ return idbReq(store, 'readwrite', function(st){ st.delete(key); return key; }); }
+function dbBulkPut(store, arr){
+  return idbReq(store, 'readwrite', function(st){ arr.forEach(function(v){ st.put(v); }); return arr.length; });
+}
+
+/* ---------------- meta ---------------- */
+var META = {};
+function metaLoad(){
+  return dbGetAll('meta').then(function(rows){
+    META = {};
+    (rows||[]).forEach(function(r){ META[r.k] = r.v; });
+    return META;
+  });
+}
+function metaGet(k, dflt){ return META[k] === undefined ? dflt : META[k]; }
+function metaSet(k, v){ META[k] = v; return dbPut('meta', {k:k, v:v}); }
+
+/* ============================================================
+   RECORDS
+   ============================================================ */
+var S = {
+  records: [],
+  sep: true,
+  angle: 'deg',
+  screen: 'scr-calc',
+  stack: [],
+  sheets: [],
+  fsHandle: null,
+  dirtyForFile: false,
+  landscape: false,
+  installEvent: null
+};
+
+function newRecord(type, data){
+  var t = nowMs();
+  return {
+    id: uid(), type: type, createdAt: t, updatedAt: t,
+    deviceId: metaGet('deviceId','dev-unknown'), deleted: false, rev: 1,
+    data: data || {}
+  };
+}
+function logWrite(action, rec, extra){
+  var e = {
+    id: uid(), at: nowMs(), deviceId: metaGet('deviceId','dev-unknown'),
+    action: action, recordId: rec ? rec.id : null, recType: rec ? rec.type : null,
+    detail: extra || null
+  };
+  return dbPut('log', e);
+}
+function saveRecord(rec){
+  return dbPut('records', rec).then(function(){
+    var i = indexOfRec(rec.id);
+    if(i >= 0) S.records[i] = rec; else S.records.push(rec);
+    markDirty();
+    return rec;
+  });
+}
+function indexOfRec(id){
+  for(var i=0;i<S.records.length;i++){ if(S.records[i].id === id) return i; }
+  return -1;
+}
+function getRec(id){ var i = indexOfRec(id); return i>=0 ? S.records[i] : null; }
+
+function createRecord(type, data, words){
+  var rec = newRecord(type, data);
+  return saveRecord(rec).then(function(){
+    return logWrite('create', rec, {summary: words || ''}).then(function(){ return rec; });
+  });
+}
+/* Field-level audit: writes one log entry per changed field. */
+function updateRecord(rec, changes, why){
+  var before = JSON.parse(JSON.stringify(rec.data));
+  Object.keys(changes).forEach(function(k){ rec.data[k] = changes[k]; });
+  rec.updatedAt = nowMs();
+  rec.rev = (rec.rev||1) + 1;
+  var diffs = [];
+  Object.keys(changes).forEach(function(k){
+    var a = before[k], b = changes[k];
+    var as = typeof a === 'object' ? JSON.stringify(a) : String(a===undefined?'':a);
+    var bs = typeof b === 'object' ? JSON.stringify(b) : String(b===undefined?'':b);
+    if(as !== bs) diffs.push({field:k, from:as, to:bs});
+  });
+  return saveRecord(rec).then(function(){
+    if(!diffs.length) return rec;
+    return logWrite('edit', rec, {why: why||'', changes: diffs}).then(function(){ return rec; });
+  });
+}
+/* Soft delete only — a tombstone, never a hard delete. */
+function deleteRecord(rec, why){
+  rec.deleted = true; rec.updatedAt = nowMs(); rec.rev = (rec.rev||1) + 1;
+  return saveRecord(rec).then(function(){
+    return logWrite('delete', rec, {why: why||''}).then(function(){ return rec; });
+  });
+}
+function restoreRecord(rec){
+  rec.deleted = false; rec.updatedAt = nowMs(); rec.rev = (rec.rev||1) + 1;
+  return saveRecord(rec).then(function(){
+    return logWrite('restore', rec, null).then(function(){ return rec; });
+  });
+}
+function liveRecords(type){
+  return S.records.filter(function(r){
+    return !r.deleted && (type ? r.type === type : true);
+  }).sort(function(a,b){ return (b.data.eventAt||b.createdAt) - (a.data.eventAt||a.createdAt); });
+}
+
+/* ============================================================
+   SNAPSHOTS + FILE AUTO-SAVE
+   ============================================================ */
+function buildPayload(){
+  return dbGetAll('log').then(function(logs){
+    return {
+      app: APP, appName: APP_NAME, version: VERSION, schemaVersion: SCHEMA,
+      exportedAt: nowMs(), exportedAtIso: fmtIso(nowMs()),
+      deviceId: metaGet('deviceId',''),
+      meta: META,
+      records: S.records,
+      log: logs || []
+    };
+  });
+}
+var lastSnapAt = 0;
+function takeSnapshot(force){
+  var t = nowMs();
+  if(!force && t - lastSnapAt < 10*60*1000) return Promise.resolve(false);
+  lastSnapAt = t;
+  return buildPayload().then(function(p){
+    var snap = {id: uid(), takenAt: t, count: p.records.length, payload: p};
+    return dbPut('backups', snap).then(function(){
+      return dbGetAll('backups').then(function(all){
+        all.sort(function(a,b){ return b.takenAt - a.takenAt; });
+        var extra = all.slice(5);
+        return Promise.all(extra.map(function(x){ return dbDel('backups', x.id); }))
+          .then(function(){ return metaSet('lastSnapshotAt', t); })
+          .then(function(){ return true; });
+      });
+    });
+  });
+}
+function markDirty(){
+  S.dirtyForFile = true;
+  scheduleFileWrite();
+  updateExportChip();
+}
+var scheduleFileWrite = debounce(function(){ writeFileBackup(false); }, 1500);
+
+function fsSupported(){ return typeof window.showSaveFilePicker === 'function'; }
+function backupFilename(){
+  var d = new Date();
+  return APP + '-backup-' + d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate())+'-'+
+    two(d.getHours())+two(d.getMinutes()) + '.json';
+}
+function fsPick(){
+  if(!fsSupported()){ toast('This browser cannot write files silently. Use Export or Share instead.'); return Promise.resolve(); }
+  return window.showSaveFilePicker({
+    suggestedName: backupFilename(),
+    types: [{description:'Le Calc backup', accept:{'application/json':['.json']}}]
+  }).then(function(h){
+    S.fsHandle = h;
+    return metaSet('fsHandle', h).then(function(){ return writeFileBackup(true); });
+  }).then(function(){ toast('Auto-save set up.'); renderSettings(); })
+  .catch(function(e){ if(e && e.name !== 'AbortError') toast('Could not set up auto-save.'); });
+}
+function fsEnsurePermission(h){
+  if(!h || !h.queryPermission) return Promise.resolve(false);
+  return h.queryPermission({mode:'readwrite'}).then(function(p){
+    if(p === 'granted') return true;
+    if(p === 'prompt' && h.requestPermission){
+      return h.requestPermission({mode:'readwrite'}).then(function(q){ return q === 'granted'; })
+        .catch(function(){ return false; });
+    }
+    return false;
+  }).catch(function(){ return false; });
+}
+function writeFileBackup(force){
+  var h = S.fsHandle;
+  if(!h) return Promise.resolve(false);
+  return fsEnsurePermission(h).then(function(ok){
+    if(!ok) return false;
+    return buildPayload().then(function(p){
+      return h.createWritable().then(function(w){
+        return w.write(new Blob([JSON.stringify(p, null, 2)], {type:'application/json'}))
+          .then(function(){ return w.close(); });
+      }).then(function(){
+        S.dirtyForFile = false;
+        return metaSet('lastFileWriteAt', nowMs()).then(function(){ renderSettings(); return true; });
+      });
+    });
+  }).catch(function(){ return false; });
+}
+
+/* ============================================================
+   EXPORT / IMPORT — merge-safe
+   ============================================================ */
+function downloadBlob(blob, filename){
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1500);
+}
+function exportJson(){
+  return buildPayload().then(function(p){
+    downloadBlob(new Blob([JSON.stringify(p, null, 2)], {type:'application/json'}), backupFilename());
+    return metaSet('lastExportAt', nowMs());
+  }).then(function(){ updateExportChip(); renderSettings(); toast('Backup file downloaded.'); });
+}
+function shareJson(){
+  return buildPayload().then(function(p){
+    var file = new File([JSON.stringify(p, null, 2)], backupFilename(), {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      return navigator.share({files:[file], title:'Le Calc backup'})
+        .then(function(){ return metaSet('lastExportAt', nowMs()); })
+        .catch(function(){});
+    }
+    return exportJson();
+  }).then(function(){ updateExportChip(); renderSettings(); });
+}
+function csvCell(v){
+  var s = String(v==null?'':v);
+  return /[",\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function recordToRow(r){
+  var d = r.data || {};
+  return {
+    id: r.id,
+    Date: fmtDate(d.eventAt || r.createdAt),
+    Time: fmtTime(d.eventAt || r.createdAt),
+    Type: r.type,
+    Expression: d.expression || d.plainWords || summaryOf(r),
+    Result: (d.resultDisplay != null ? d.resultDisplay : (d.result != null ? fmtRaw(d.result) : '')),
+    Note: d.note || ''
+  };
+}
+function exportCsv(){
+  var rows = liveRecords().map(recordToRow);
+  var head = ['id','Date','Time','Type','Expression','Result','Note'];
+  var out = '\ufeff' + head.join(',') + '\r\n' +
+    rows.map(function(r){ return head.map(function(h){ return csvCell(r[h]); }).join(','); }).join('\r\n');
+  downloadBlob(new Blob([out], {type:'text/csv;charset=utf-8'}), APP+'-records-'+fmtDate(nowMs())+'.csv');
+  toast('CSV downloaded.');
+}
+
+function dryRunMerge(p){
+  var plan = {inserts:[], updates:[], unchanged:0, conflicts:0, logNew:[], errors:[]};
+  if(!p || p.app !== APP){ plan.errors.push('This file is not a '+APP_NAME+' backup.'); return Promise.resolve(plan); }
+  if((p.schemaVersion||1) > SCHEMA){ plan.errors.push('That backup was made by a newer version of the app.'); return Promise.resolve(plan); }
+  var incoming = p.records || [];
+  incoming.forEach(function(inc){
+    if(!inc || !inc.id) return;
+    var local = getRec(inc.id);
+    if(!local){ plan.inserts.push(migrateRecord(inc, p.schemaVersion||1)); return; }
+    var a = local.updatedAt||0, b = inc.updatedAt||0;
+    if(b > a){ plan.updates.push(migrateRecord(inc, p.schemaVersion||1)); }
+    else if(b === a){
+      if((inc.rev||1) > (local.rev||1)){ plan.updates.push(migrateRecord(inc, p.schemaVersion||1)); }
+      else if((inc.rev||1) === (local.rev||1)){ plan.unchanged++; }
+      else { plan.conflicts++; }
+    } else { plan.conflicts++; }
+  });
+  return dbGetAll('log').then(function(existing){
+    var have = {}; (existing||[]).forEach(function(e){ have[e.id] = 1; });
+    (p.log||[]).forEach(function(e){ if(e && e.id && !have[e.id]) plan.logNew.push(e); });
+    return plan;
+  });
+}
+/* Schema migration path for older backups. */
+function migrateRecord(r, fromVersion){
+  var rec = JSON.parse(JSON.stringify(r));
+  if(!rec.data) rec.data = {};
+  if(rec.deleted === undefined) rec.deleted = false;
+  if(rec.rev === undefined) rec.rev = 1;
+  if(rec.createdAt === undefined) rec.createdAt = rec.updatedAt || nowMs();
+  if(rec.updatedAt === undefined) rec.updatedAt = rec.createdAt;
+  if(rec.deviceId === undefined) rec.deviceId = 'dev-imported';
+  return rec;
+}
+function applyMerge(plan){
+  var all = plan.inserts.concat(plan.updates);
+  return takeSnapshot(true).then(function(){
+    return dbBulkPut('records', all);
+  }).then(function(){
+    return plan.logNew.length ? dbBulkPut('log', plan.logNew) : 0;
+  }).then(function(){
+    return dbGetAll('records');
+  }).then(function(rows){
+    S.records = rows || [];
+    return logWrite('import-merge', null, {
+      inserted: plan.inserts.length, updated: plan.updates.length,
+      unchanged: plan.unchanged, kept: plan.conflicts, logEntries: plan.logNew.length
+    });
+  }).then(function(){
+    markDirty(); renderAll();
+  });
+}
+
+/* ============================================================
+   NAVIGATION — Android back button guard
+   ============================================================ */
+function show(id){
+  $$('.screen').forEach(function(s){ s.classList.toggle('active', s.id === id); });
+  S.screen = id;
+  window.scrollTo(0,0);
+  var sc = $('#'+id); if(sc){ var p = sc.querySelector('.pad'); if(p) p.scrollTop = 0; }
+  onScreenShown(id);
+}
+function nav(id){
+  if(id === S.screen) return;
+  S.stack.push(S.screen);
+  history.pushState({layer: S.stack.length + S.sheets.length}, '');
+  show(id);
+}
+function goBack(){ history.back(); }
+function popLayer(){
+  if(S.sheets.length){ closeSheet(true); return; }
+  if(S.stack.length){ var prev = S.stack.pop(); show(prev); return; }
+  /* nothing left to close — let the browser leave */
+}
+window.addEventListener('popstate', function(){ popLayer(); });
+
+/* ---------------- sheets ---------------- */
+function openSheet(title, bodyHtml, onMount){
+  var wrap = el('div','sheet-backdrop');
+  wrap.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">'+
+    '<h3>'+esc(title)+'<button class="iconbtn x" aria-label="Close">✕</button></h3>'+
+    '<div class="sheet-body"></div></div>';
+  var body = wrap.querySelector('.sheet-body');
+  body.innerHTML = bodyHtml || '';
+  wrap.querySelector('.x').addEventListener('click', function(){ goBack(); });
+  wrap.addEventListener('click', function(e){ if(e.target === wrap) goBack(); });
+  $('#sheets').appendChild(wrap);
+  S.sheets.push(wrap);
+  history.pushState({layer: S.stack.length + S.sheets.length}, '');
+  if(onMount) onMount(body, wrap);
+  var f = body.querySelector('input,select,textarea,button');
+  if(f && window.matchMedia && window.matchMedia('(min-width:640px)').matches) f.focus();
+  return wrap;
+}
+function closeSheet(){
+  var w = S.sheets.pop();
+  if(w && w.parentNode) w.parentNode.removeChild(w);
+}
+function closeSheetAndBack(){ goBack(); }
+
+/* ---------------- toast ---------------- */
+var toastT = null;
+function toast(msg, ms){
+  var old = $('.toast'); if(old) old.remove();
+  var t = el('div','toast', msg);
+  document.body.appendChild(t);
+  clearTimeout(toastT);
+  toastT = setTimeout(function(){ if(t.parentNode) t.remove(); }, ms || 2600);
+}
+function confirmSheet(title, message, confirmLabel, onYes, danger){
+  openSheet(title,
+    '<p class="small">'+esc(message)+'</p>'+
+    '<div class="row"><button class="btn '+(danger?'danger':'primary')+' grow" id="cfYes">'+esc(confirmLabel)+'</button>'+
+    '<button class="btn ghost" id="cfNo">Cancel</button></div>',
+    function(body){
+      body.querySelector('#cfYes').addEventListener('click', function(){ goBack(); setTimeout(onYes, 60); });
+      body.querySelector('#cfNo').addEventListener('click', function(){ goBack(); });
+    });
+}
+
+/* ---------------- theme ---------------- */
+function applyTheme(t){
+  document.documentElement.dataset.theme = t;
+  try{ localStorage.setItem('lecalc.theme', t); }catch(e){}
+  var c = {amoled:'#000000', light:'#ffffff', dim:'#121212', hc:'#000000'}[t] || '#000000';
+  var m = $('#metaThemeColor'); if(m) m.setAttribute('content', c);
+  $$('#setThemes .chip').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.theme === t)); });
+  metaSet('theme', t);
+}
+function applyPaper(p){
+  var s = $('#pageSizeStyle');
+  var size = p === 'Letter' ? 'Letter' : 'A4';
+  var orient = S.landscape ? ' landscape' : ' portrait';
+  s.textContent = '@page{ size:'+size+orient+'; margin:15mm 12mm; }';
+}
+</script>
+<script>
+"use strict";
+/* ============================================================
+   EXPRESSION ENGINE — tokeniser + shunting yard + RPN evaluator.
+   No eval(), no Function(). Expressions are stored in a plain
+   ASCII form so they survive CSV round-trips.
+   ============================================================ */
+var FUNCS = ['asin','acos','atan','sinh','cosh','tanh','sin','cos','tan','ln','log','sqrt','abs','exp'];
+var FUNC_DISPLAY = {
+  asin:'sin⁻¹', acos:'cos⁻¹', atan:'tan⁻¹', sinh:'sinh', cosh:'cosh', tanh:'tanh',
+  sin:'sin', cos:'cos', tan:'tan', ln:'ln', log:'log', sqrt:'√', abs:'abs', exp:'exp'
+};
+var FUNC_WORDS = {
+  asin:'the inverse sine of', acos:'the inverse cosine of', atan:'the inverse tangent of',
+  sinh:'the hyperbolic sine of', cosh:'the hyperbolic cosine of', tanh:'the hyperbolic tangent of',
+  sin:'the sine of', cos:'the cosine of', tan:'the tangent of', ln:'the natural log of',
+  log:'the log of', sqrt:'the square root of', abs:'the absolute value of', exp:'e to the power'
+};
+
+function tokenize(src){
+  var t = [], i = 0, s = String(src||'');
+  while(i < s.length){
+    var c = s.charAt(i);
+    if(c === ' '){ i++; continue; }
+    if(/[0-9.]/.test(c)){
+      var m = /^(?:\d+\.?\d*|\.\d+)/.exec(s.slice(i));
+      if(!m) throw new Error('Bad number');
+      t.push({k:'num', v:parseFloat(m[0]), s:m[0]}); i += m[0].length; continue;
+    }
+    if(s.slice(i, i+2) === 'pi'){ t.push({k:'const', v:Math.PI, s:'pi'}); i += 2; continue; }
+    var fn = null;
+    for(var f=0; f<FUNCS.length; f++){
+      if(s.slice(i, i+FUNCS[f].length) === FUNCS[f]){ fn = FUNCS[f]; break; }
+    }
+    if(fn){ t.push({k:'func', v:fn, s:fn}); i += fn.length; continue; }
+    if(c === 'e'){ t.push({k:'const', v:Math.E, s:'e'}); i++; continue; }
+    if('+-*/^'.indexOf(c) >= 0){ t.push({k:'op', v:c, s:c}); i++; continue; }
+    if(c === '('){ t.push({k:'lp', s:'('}); i++; continue; }
+    if(c === ')'){ t.push({k:'rp', s:')'}); i++; continue; }
+    if(c === '%'){ t.push({k:'pct', s:'%'}); i++; continue; }
+    throw new Error('Unexpected character ' + c);
+  }
+  return t;
+}
+function displayExpr(src){
+  var t;
+  try{ t = tokenize(src); }catch(e){ return String(src||''); }
+  var out = '';
+  t.forEach(function(tk){
+    if(tk.k === 'num') out += tk.s;
+    else if(tk.k === 'const') out += (tk.s === 'pi' ? 'π' : 'e');
+    else if(tk.k === 'func') out += FUNC_DISPLAY[tk.v] || tk.v;
+    else if(tk.k === 'op') out += ({'*':'×','/':'÷','-':'−','+':'+','^':'^'})[tk.v];
+    else out += tk.s;
+  });
+  return out;
+}
+function plainWords(src){
+  var t;
+  try{ t = tokenize(src); }catch(e){ return String(src||''); }
+  var out = [];
+  t.forEach(function(tk){
+    if(tk.k === 'num') out.push(tk.s);
+    else if(tk.k === 'const') out.push(tk.s === 'pi' ? 'pi' : 'e');
+    else if(tk.k === 'func') out.push(FUNC_WORDS[tk.v] || tk.v);
+    else if(tk.k === 'op') out.push({'*':'multiplied by','/':'divided by','-':'minus','+':'plus','^':'to the power'}[tk.v]);
+    else if(tk.k === 'lp') out.push('(');
+    else if(tk.k === 'rp') out.push(')');
+    else if(tk.k === 'pct') out.push('per cent');
+  });
+  return out.join(' ').replace(/\(\s+/g,'(').replace(/\s+\)/g,')');
+}
+function autoClose(src){
+  var open = 0;
+  var t;
+  try{ t = tokenize(src); }catch(e){ return src; }
+  t.forEach(function(tk){ if(tk.k === 'lp') open++; else if(tk.k === 'rp') open--; });
+  var s = src;
+  while(open-- > 0) s += ')';
+  return s;
+}
+var PREC = {'+':2, '-':2, '*':3, '/':3, '^':4, 'u-':3, 'u+':3};
+var RIGHT = {'^':true, 'u-':true, 'u+':true};
+
+function toRpn(tokens){
+  var out = [], ops = [], prev = null;
+  function isValue(tk){ return tk && (tk.k === 'num' || tk.k === 'const' || tk.k === 'rp' || tk.k === 'pct'); }
+  for(var i=0; i<tokens.length; i++){
+    var tk = tokens[i];
+    /* implicit multiplication: 2pi, 3(4+1), pi e, )( , 2sin(… */
+    if(isValue(prev) && (tk.k === 'num' || tk.k === 'const' || tk.k === 'func' || tk.k === 'lp')){
+      pushOp({k:'op', v:'*'});
+    }
+    if(tk.k === 'num' || tk.k === 'const'){ out.push({k:'val', v:tk.v}); }
+    else if(tk.k === 'func'){ ops.push({k:'func', v:tk.v}); }
+    else if(tk.k === 'lp'){ ops.push({k:'lp'}); }
+    else if(tk.k === 'rp'){
+      var found = false;
+      while(ops.length){
+        var top = ops[ops.length-1];
+        if(top.k === 'lp'){ ops.pop(); found = true; break; }
+        out.push(ops.pop());
+      }
+      if(!found) throw new Error('Unmatched bracket');
+      if(ops.length && ops[ops.length-1].k === 'func') out.push(ops.pop());
+    }
+    else if(tk.k === 'pct'){
+      /* a + b%  → a + a×b/100 ; otherwise b/100 */
+      var top2 = ops.length ? ops[ops.length-1] : null;
+      if(top2 && top2.k === 'op' && (top2.v === '+' || top2.v === '-')) out.push({k:'pctrel'});
+      else out.push({k:'pct'});
+    }
+    else if(tk.k === 'op'){
+      var unary = !isValue(prev) && (tk.v === '-' || tk.v === '+');
+      var name = unary ? ('u'+tk.v) : tk.v;
+      pushOp({k:'op', v:name});
+    }
+    prev = tk;
+  }
+  function pushOp(o){
+    var p = PREC[o.v];
+    while(ops.length){
+      var top = ops[ops.length-1];
+      if(top.k === 'func'){ out.push(ops.pop()); continue; }
+      if(top.k !== 'op') break;
+      var tp = PREC[top.v];
+      if(tp > p || (tp === p && !RIGHT[o.v])) out.push(ops.pop());
+      else break;
+    }
+    ops.push(o);
+  }
+  while(ops.length){
+    var o = ops.pop();
+    if(o.k === 'lp') throw new Error('Unmatched bracket');
+    out.push(o);
+  }
+  return out;
+}
+function d2r(x){ return S.angle === 'deg' ? x*Math.PI/180 : x; }
+function r2d(x){ return S.angle === 'deg' ? x*180/Math.PI : x; }
+
+function evalRpn(rpn){
+  var st = [];
+  function pop(){ if(!st.length) throw new Error('Incomplete expression'); return st.pop(); }
+  for(var i=0; i<rpn.length; i++){
+    var t = rpn[i];
+    if(t.k === 'val'){ st.push(t.v); continue; }
+    if(t.k === 'pct'){ st.push(pop()/100); continue; }
+    if(t.k === 'pctrel'){
+      var b = pop();
+      if(!st.length) throw new Error('Incomplete expression');
+      var a = st[st.length-1];
+      st.push(a*b/100); continue;
+    }
+    if(t.k === 'func'){
+      var x = pop(), r;
+      switch(t.v){
+        case 'sin': r = Math.sin(d2r(x)); break;
+        case 'cos': r = Math.cos(d2r(x)); break;
+        case 'tan': r = Math.tan(d2r(x)); break;
+        case 'asin': r = r2d(Math.asin(x)); break;
+        case 'acos': r = r2d(Math.acos(x)); break;
+        case 'atan': r = r2d(Math.atan(x)); break;
+        case 'sinh': r = Math.sinh(x); break;
+        case 'cosh': r = Math.cosh(x); break;
+        case 'tanh': r = Math.tanh(x); break;
+        case 'ln': r = Math.log(x); break;
+        case 'log': r = Math.log10(x); break;
+        case 'sqrt': r = Math.sqrt(x); break;
+        case 'abs': r = Math.abs(x); break;
+        case 'exp': r = Math.exp(x); break;
+        default: throw new Error('Unknown function');
+      }
+      if(Number.isNaN(r)) throw new Error('Undefined for that value');
+      st.push(r); continue;
+    }
+    if(t.k === 'op'){
+      if(t.v === 'u-'){ st.push(-pop()); continue; }
+      if(t.v === 'u+'){ st.push(pop()); continue; }
+      var y = pop(), x2 = pop(), v;
+      switch(t.v){
+        case '+': v = x2 + y; break;
+        case '-': v = x2 - y; break;
+        case '*': v = x2 * y; break;
+        case '/': if(y === 0) throw new Error("Can't divide by zero"); v = x2 / y; break;
+        case '^': v = Math.pow(x2, y); if(Number.isNaN(v)) throw new Error('Undefined power'); break;
+        default: throw new Error('Unknown operator');
+      }
+      st.push(v); continue;
+    }
+    throw new Error('Bad token');
+  }
+  if(st.length !== 1) throw new Error('Incomplete expression');
+  var out = st[0];
+  if(!isFinite(out)) throw new Error('Result is too large');
+  return out;
+}
+function evaluate(src){
+  var closed = autoClose(src);
+  return evalRpn(toRpn(tokenize(closed)));
+}
+
+/* ============================================================
+   CALCULATOR PAD
+   ============================================================ */
+var C = { expr:'', justEquals:false, inv:false, sci:false };
+
+function lastOperandStart(s){
+  if(!s) return -1;
+  var i = s.length - 1, c = s.charAt(i);
+  if(c === ')'){
+    var depth = 0;
+    for(; i >= 0; i--){
+      var ch = s.charAt(i);
+      if(ch === ')') depth++;
+      else if(ch === '('){ depth--; if(depth === 0) break; }
+    }
+    if(i < 0) return -1;
+    var j = i;
+    var m = /([a-z]+)$/.exec(s.slice(0, j));
+    if(m && FUNCS.indexOf(m[1]) >= 0) j -= m[1].length;
+    return j;
+  }
+  if(/[0-9.]/.test(c)){
+    var k = i;
+    while(k >= 0 && /[0-9.]/.test(s.charAt(k))) k--;
+    return k + 1;
+  }
+  if(s.slice(-2) === 'pi') return s.length - 2;
+  if(c === 'e') return s.length - 1;
+  return -1;
+}
+function wrapLast(pre, post){
+  var i = lastOperandStart(C.expr);
+  if(i < 0){ insert(pre); return; }
+  C.expr = C.expr.slice(0, i) + pre + C.expr.slice(i) + post;
+  C.justEquals = false;
+  renderCalc();
+}
+function insert(s){
+  if(C.justEquals){
+    var startsValue = /^[0-9.(]/.test(s) || /^[a-z]/.test(s);
+    if(startsValue) C.expr = '';
+    C.justEquals = false;
+  }
+  C.expr += s;
+  renderCalc();
+}
+function insertOp(op){
+  if(C.justEquals) C.justEquals = false;
+  if(!C.expr){
+    if(op === '-'){ C.expr = '-'; renderCalc(); return; }
+    renderCalc(); return;
+  }
+  var last = C.expr.charAt(C.expr.length-1);
+  if('+-*/^'.indexOf(last) >= 0){
+    if(op === '-' && last !== '-'){ C.expr += op; renderCalc(); return; }
+    C.expr = C.expr.slice(0, -1) + op;
+  } else {
+    C.expr += op;
+  }
+  renderCalc();
+}
+function smartParen(){
+  var open = 0;
+  for(var i=0;i<C.expr.length;i++){ var c=C.expr.charAt(i); if(c==='(') open++; else if(c===')') open--; }
+  var last = C.expr.charAt(C.expr.length-1);
+  var canClose = open > 0 && last !== '(' && !/[+\-*/^]$/.test(C.expr);
+  insert(canClose ? ')' : '(');
+}
+function toggleSign(){
+  var i = lastOperandStart(C.expr);
+  if(i < 0){ insert('-'); return; }
+  if(C.expr.slice(i-1, i) === '-' && (i === 1 || /[(+\-*/^]/.test(C.expr.charAt(i-2)))){
+    C.expr = C.expr.slice(0, i-1) + C.expr.slice(i);
+  } else {
+    C.expr = C.expr.slice(0, i) + '-' + C.expr.slice(i);
+  }
+  C.justEquals = false;
+  renderCalc();
+}
+function backspace(){
+  if(!C.expr) return;
+  C.justEquals = false;
+  var m = /(asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|ln|log|sqrt|abs|exp)\($/.exec(C.expr);
+  if(m){ C.expr = C.expr.slice(0, -(m[1].length+1)); }
+  else if(/pi$/.test(C.expr)){ C.expr = C.expr.slice(0, -2); }
+  else { C.expr = C.expr.slice(0, -1); }
+  renderCalc();
+}
+function clearAll(){ C.expr = ''; C.justEquals = false; renderCalc(); }
+
+function calcKeys(){
+  var inv = C.inv;
+  var basic = [
+    {t:'C', a:'clear'}, {t:'( )', a:'paren'}, {t:'%', a:'pct'}, {t:'÷', a:'op', v:'/', c:'op'},
+    {t:'7', a:'ins', v:'7'}, {t:'8', a:'ins', v:'8'}, {t:'9', a:'ins', v:'9'}, {t:'×', a:'op', v:'*', c:'op'},
+    {t:'4', a:'ins', v:'4'}, {t:'5', a:'ins', v:'5'}, {t:'6', a:'ins', v:'6'}, {t:'−', a:'op', v:'-', c:'op'},
+    {t:'1', a:'ins', v:'1'}, {t:'2', a:'ins', v:'2'}, {t:'3', a:'ins', v:'3'}, {t:'+', a:'op', v:'+', c:'op'},
+    {t:'+/−', a:'sign'}, {t:'0', a:'ins', v:'0'}, {t:'.', a:'ins', v:'.'}, {t:'=', a:'eq', c:'eq'}
+  ];
+  if(!C.sci) return {cols:4, keys:basic};
+  var sci = [
+    {t:'⇆', a:'inv', c:'fn'}, {t:(S.angle==='deg'?'Rad':'Deg'), a:'angle', c:'fn'},
+      {t: inv?'x<sup>2</sup>':'√', a: inv?'sq':'sqrt', c:'fn'},
+      basic[0], basic[1], basic[2], basic[3],
+    {t: inv?'sin<sup>-1</sup>':'sin', a:'fn', v: inv?'asin':'sin', c:'fn'},
+      {t: inv?'cos<sup>-1</sup>':'cos', a:'fn', v: inv?'acos':'cos', c:'fn'},
+      {t: inv?'tan<sup>-1</sup>':'tan', a:'fn', v: inv?'atan':'tan', c:'fn'},
+      basic[4], basic[5], basic[6], basic[7],
+    {t: inv?'e<sup>x</sup>':'ln', a: inv?'fnexp':'fn', v:'ln', c:'fn'},
+      {t: inv?'10<sup>x</sup>':'log', a: inv?'ten':'fn', v:'log', c:'fn'},
+      {t:'1/x', a:'recip', c:'fn'},
+      basic[8], basic[9], basic[10], basic[11],
+    {t:'e<sup>x</sup>', a:'fnexp', c:'fn'}, {t:'x<sup>2</sup>', a:'sq', c:'fn'}, {t:'x<sup>y</sup>', a:'op', v:'^', c:'fn'},
+      basic[12], basic[13], basic[14], basic[15],
+    {t:'|x|', a:'fnabs', c:'fn'}, {t:'π', a:'ins', v:'pi', c:'fn'}, {t:'e', a:'ins', v:'e', c:'fn'},
+      basic[16], basic[17], basic[18], basic[19]
+  ];
+  return {cols:7, keys:sci};
+}
+function renderKeys(){
+  var def = calcKeys(), box = $('#keys');
+  box.className = 'keys no-print' + (def.cols === 7 ? ' sci' : '');
+  box.innerHTML = '';
+  def.keys.forEach(function(k){
+    var b = el('button', 'key' + (k.c ? ' ' + k.c : ''));
+    b.innerHTML = k.t;
+    b.setAttribute('aria-label', (b.textContent || k.t).trim());
+    b.addEventListener('click', function(){ keyAction(k); });
+    box.appendChild(b);
+  });
+}
+function keyAction(k){
+  switch(k.a){
+    case 'ins': insert(k.v); break;
+    case 'op': insertOp(k.v); break;
+    case 'paren': smartParen(); break;
+    case 'pct': if(C.expr) insert('%'); break;
+    case 'clear': clearAll(); break;
+    case 'sign': toggleSign(); break;
+    case 'eq': doEquals(); break;
+    case 'fn': insert(k.v + '('); break;
+    case 'fnexp': wrapOrInsert('exp('); break;
+    case 'fnabs': wrapOrInsert('abs('); break;
+    case 'sqrt': wrapOrInsert('sqrt('); break;
+    case 'sq': wrapLast('(', ')^2'); break;
+    case 'recip': wrapLast('1/(', ')'); break;
+    case 'ten': insert('10^('); break;
+    case 'inv': C.inv = !C.inv; renderKeys(); break;
+    case 'angle':
+      S.angle = S.angle === 'deg' ? 'rad' : 'deg';
+      metaSet('angle', S.angle); renderKeys(); renderCalc();
+      toast(S.angle === 'deg' ? 'Degrees' : 'Radians');
+      break;
+  }
+}
+function wrapOrInsert(pre){
+  var i = lastOperandStart(C.expr);
+  if(i < 0){ insert(pre); return; }
+  wrapLast(pre, ')');
+}
+function renderCalc(){
+  var ex = $('#calcExpr'), lv = $('#calcLive');
+  ex.textContent = C.expr ? displayExpr(C.expr) : '0';
+  if(!C.expr){ lv.textContent = ''; lv.classList.remove('error'); return; }
+  if(C.justEquals){ lv.textContent = ''; lv.classList.remove('error'); return; }
+  try{
+    var v = evaluate(C.expr);
+    lv.textContent = '= ' + fmtNum(v);
+    lv.classList.remove('error');
+  }catch(e){
+    lv.textContent = '';
+    lv.classList.remove('error');
+  }
+}
+function doEquals(){
+  if(!C.expr) return;
+  var v;
+  try{ v = evaluate(C.expr); }
+  catch(e){
+    var lv = $('#calcLive');
+    lv.textContent = e.message; lv.classList.add('error');
+    return;
+  }
+  var src = autoClose(C.expr);
+  var t = nowMs();
+  createRecord('calc', {
+    expression: src,
+    expressionDisplay: displayExpr(src),
+    resultRaw: v,
+    resultDisplay: fmtRaw(v),
+    angleMode: S.angle,
+    plainWords: plainWords(src) + ' equals ' + fmtRaw(v),
+    note: '',
+    eventAt: t
+  }).then(function(){ renderHistoryIfOpen(); });
+  C.expr = fmtRaw(v);
+  C.justEquals = true;
+  $('#calcExpr').textContent = displayExpr(C.expr);
+  $('#calcLive').textContent = '';
+  $('#calcLive').classList.remove('error');
+}
+function pushToCalc(text){
+  C.expr = String(text); C.justEquals = true; nav('scr-calc'); renderCalc();
+}
+function appendToCalc(text){
+  if(C.justEquals){ C.justEquals = false; }
+  C.expr += String(text); renderCalc();
+}
+
+/* keyboard, desktop */
+document.addEventListener('keydown', function(e){
+  if(S.screen !== 'scr-calc') return;
+  var tag = (e.target && e.target.tagName || '').toLowerCase();
+  if(tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  var k = e.key;
+  if(/^[0-9.]$/.test(k)){ insert(k); e.preventDefault(); return; }
+  if(k === '+' || k === '-' || k === '*' || k === '/' || k === '^'){ insertOp(k); e.preventDefault(); return; }
+  if(k === '('){ insert('('); e.preventDefault(); return; }
+  if(k === ')'){ insert(')'); e.preventDefault(); return; }
+  if(k === '%'){ if(C.expr) insert('%'); e.preventDefault(); return; }
+  if(k === 'Enter' || k === '='){ doEquals(); e.preventDefault(); return; }
+  if(k === 'Backspace'){ backspace(); e.preventDefault(); return; }
+  if(k === 'Escape'){ clearAll(); e.preventDefault(); return; }
+  if(k === 'h' || k === 'H'){ nav('scr-history'); e.preventDefault(); return; }
+});
+</script>
+<script>
+"use strict";
+/* ============================================================
+   UNIT CONVERTER
+   Factors convert TO the category base unit.
+   ============================================================ */
+var CONV = {
+  'Length': {base:'m', units:[['Millimetre (mm)',0.001],['Centimetre (cm)',0.01],['Metre (m)',1],
+    ['Kilometre (km)',1000],['Inch (in)',0.0254],['Foot (ft)',0.3048],['Yard (yd)',0.9144],
+    ['Fathom',1.8288],['Nautical mile (NM)',1852],['Statute mile (mi)',1609.344]]},
+  'Area': {base:'m²', units:[['Square metre (m²)',1],['Square centimetre (cm²)',0.0001],
+    ['Square foot (ft²)',0.09290304],['Square inch (in²)',0.00064516],['Hectare (ha)',10000],['Acre',4046.8564224]]},
+  'Volume': {base:'m³', units:[['Cubic metre (m³)',1],['Litre (L)',0.001],['Cubic centimetre (cm³)',1e-6],
+    ['Barrel (bbl)',1/M3_TO_BBL],['US gallon',0.003785411784],['Imperial gallon',0.00454609],
+    ['Cubic foot (ft³)',0.028316846592],['Cubic inch (in³)',1.6387064e-5]]},
+  'Mass': {base:'kg', units:[['Kilogram (kg)',1],['Metric tonne (MT)',1000],['Gram (g)',0.001],
+    ['Long ton (LT)',1016.0469088],['Short ton (ST)',907.18474],['Pound (lb)',0.45359237],['Ounce (oz)',0.028349523125]]},
+  'Density': {base:'kg/m³', units:[['Tonne per m³ (t/m³)',1000],['Kilogram per m³ (kg/m³)',1],
+    ['Gram per cm³ (g/cm³)',1000],['Pound per ft³ (lb/ft³)',16.018463374],['Pound per US gallon',119.8264273]]},
+  'Temperature': {base:'°C', special:'temp', units:[['Celsius (°C)',1],['Fahrenheit (°F)',1],['Kelvin (K)',1]]},
+  'Speed': {base:'m/s', units:[['Metre per second (m/s)',1],['Knot (kn)',0.514444444444],
+    ['Kilometre per hour (km/h)',0.277777777778],['Mile per hour (mph)',0.44704],['Foot per second (ft/s)',0.3048]]},
+  'Flow rate': {base:'m³/hr', units:[['Cubic metre per hour (m³/hr)',1],['Barrel per hour (bbl/hr)',1/M3_TO_BBL],
+    ['Litre per minute (L/min)',0.06],['Cubic metre per minute (m³/min)',60],['US gallon per minute (gpm)',0.2271247]]},
+  'Pressure': {base:'bar', units:[['Bar',1],['Kilopascal (kPa)',0.01],['Megapascal (MPa)',10],
+    ['Pound per square inch (psi)',0.0689475729],['Kilogram per cm² (kg/cm²)',0.980665],
+    ['Atmosphere (atm)',1.01325],['Millimetre of mercury (mmHg)',0.001333224]]},
+  'Time': {base:'hour', units:[['Second',1/3600],['Minute',1/60],['Hour',1],['Day',24],['Week',168]]},
+  'Energy': {base:'kJ', units:[['Kilojoule (kJ)',1],['Megajoule (MJ)',1000],['Kilocalorie (kcal)',4.184],
+    ['Kilowatt hour (kWh)',3600],['British thermal unit (BTU)',1.05505585]]},
+  'Angle': {base:'degree', units:[['Degree (°)',1],['Radian (rad)',180/Math.PI],['Gradian (gon)',0.9]]},
+  'Data': {base:'MB', units:[['Byte',1e-6],['Kilobyte (KB)',0.001],['Megabyte (MB)',1],
+    ['Gigabyte (GB)',1000],['Terabyte (TB)',1e6]]}
+};
+var CV = {cat:'Volume', from:0, to:1, note:''};
+
+function tempTo(v, unit){ /* to Celsius */
+  if(unit.indexOf('Fahrenheit') === 0) return (v-32)*5/9;
+  if(unit.indexOf('Kelvin') === 0) return v-273.15;
+  return v;
+}
+function tempFrom(c, unit){
+  if(unit.indexOf('Fahrenheit') === 0) return c*9/5+32;
+  if(unit.indexOf('Kelvin') === 0) return c+273.15;
+  return c;
+}
+function convertValue(cat, v, fromLabel, toLabel){
+  var c = CONV[cat];
+  if(c.special === 'temp') return tempFrom(tempTo(v, fromLabel), toLabel);
+  var fu = 1, tu = 1;
+  c.units.forEach(function(u){ if(u[0] === fromLabel) fu = u[1]; if(u[0] === toLabel) tu = u[1]; });
+  return v * fu / tu;
+}
+function unitShort(label){
+  var m = /\(([^)]+)\)\s*$/.exec(label);
+  return m ? m[1] : label;
+}
+function buildConverter(){
+  var catSel = $('#cvCat');
+  catSel.innerHTML = Object.keys(CONV).map(function(k){ return '<option>'+esc(k)+'</option>'; }).join('');
+  catSel.value = CV.cat;
+  fillUnits();
+  catSel.addEventListener('change', function(){ CV.cat = catSel.value; CV.from = 0; CV.to = 1; fillUnits(); cvCalc(); });
+  ['#cvFromVal','#cvFromUnit','#cvToUnit'].forEach(function(s){
+    $(s).addEventListener('input', cvCalc); $(s).addEventListener('change', cvCalc);
+  });
+  $('#cvSwap').addEventListener('click', function(){
+    var a = $('#cvFromUnit').value, b = $('#cvToUnit').value;
+    $('#cvFromUnit').value = b; $('#cvToUnit').value = a;
+    var v = num($('#cvToVal').value);
+    if(isFinite(v)) $('#cvFromVal').value = v;
+    cvCalc();
+  });
+  $('#cvSave').addEventListener('click', saveConversion);
+  var quick = [
+    ['Volume','Cubic metre (m³)','Barrel (bbl)'],
+    ['Volume','Barrel (bbl)','Cubic metre (m³)'],
+    ['Length','Metre (m)','Foot (ft)'],
+    ['Pressure','Bar','Pound per square inch (psi)'],
+    ['Temperature','Celsius (°C)','Fahrenheit (°F)'],
+    ['Mass','Metric tonne (MT)','Long ton (LT)'],
+    ['Speed','Knot (kn)','Metre per second (m/s)']
+  ];
+  var box = $('#cvQuick'); box.innerHTML = '';
+  quick.forEach(function(q){
+    var b = el('button','chip', unitShort(q[1])+' → '+unitShort(q[2]));
+    b.addEventListener('click', function(){
+      CV.cat = q[0]; $('#cvCat').value = q[0]; fillUnits();
+      $('#cvFromUnit').value = q[1]; $('#cvToUnit').value = q[2]; cvCalc();
+    });
+    box.appendChild(b);
+  });
+}
+function fillUnits(){
+  var opts = CONV[CV.cat].units.map(function(u){ return '<option>'+esc(u[0])+'</option>'; }).join('');
+  $('#cvFromUnit').innerHTML = opts;
+  $('#cvToUnit').innerHTML = opts;
+  var us = CONV[CV.cat].units;
+  $('#cvFromUnit').value = us[0][0];
+  $('#cvToUnit').value = (us[1]||us[0])[0];
+}
+function cvCalc(){
+  var v = num($('#cvFromVal').value);
+  if(!isFinite(v)){ $('#cvToVal').value = ''; return; }
+  var out = convertValue(CV.cat, v, $('#cvFromUnit').value, $('#cvToUnit').value);
+  $('#cvToVal').value = fmtNum(out);
+}
+function saveConversion(){
+  var v = num($('#cvFromVal').value);
+  if(!isFinite(v)){ toast('Enter a value to convert.'); return; }
+  var fu = $('#cvFromUnit').value, tu = $('#cvToUnit').value;
+  var out = convertValue(CV.cat, v, fu, tu);
+  var words = fmtRaw(v)+' '+unitShort(fu)+' = '+fmtRaw(out)+' '+unitShort(tu);
+  var t = nowMs();
+  createRecord('convert', {
+    category: CV.cat, fromValue: v, fromUnit: fu, toValue: out, toUnit: tu,
+    result: out, resultDisplay: fmtRaw(out), plainWords: words,
+    note: $('#cvNote').value.trim(), eventAt: t
+  }).then(function(){
+    toast('Conversion saved.');
+    $('#cvNote').value = '';
+    renderPrev('convert', '#cvPrev');
+    renderHistoryIfOpen();
+  });
+}
+
+/* ============================================================
+   SHIP CALCULATORS
+   ============================================================ */
+var UI = {
+  m3mt:{dir:'v2w'}, etc:{unit:'m³', op:'Loading'},
+  line:{mode:'single', lenUnit:'m', rows:[{dia:'',len:''},{dia:'',len:''}]},
+  rinse:{portable:false, tanks:{}},
+  interp:{solve:'y', dec:3}
+};
+function segInit(sel, onPick, initial){
+  var box = $(sel);
+  if(!box) return;
+  $$('button', box).forEach(function(b){
+    b.addEventListener('click', function(){
+      $$('button', box).forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
+      onPick(b.dataset.v);
+    });
+    if(initial != null) b.setAttribute('aria-pressed', String(b.dataset.v === initial));
+  });
+}
+
+/* ---- m³ ⇆ MT ---- */
+function m3mtCalc(){
+  var q = num($('#mmQty').value), d = num($('#mmDen').value);
+  var out = $('#mmOut'), w = $('#mmWords');
+  $('#mmQtyLbl').textContent = UI.m3mt.dir === 'v2w' ? 'Quantity (m³)' : 'Quantity (MT)';
+  $('#mmOutLbl').textContent = UI.m3mt.dir === 'v2w' ? 'Weight' : 'Volume';
+  if(!isFinite(q) || !isFinite(d) || d === 0){ out.textContent = '—'; w.textContent = ''; return null; }
+  var r = UI.m3mt.dir === 'v2w' ? q*d : q/d;
+  var unit = UI.m3mt.dir === 'v2w' ? 'MT' : 'm³';
+  out.textContent = fmtNum(r) + ' ' + unit;
+  var words = UI.m3mt.dir === 'v2w'
+    ? fmtRaw(q)+' m³ × '+fmtRaw(d)+' t/m³ = '+fmtRaw(r)+' MT'
+    : fmtRaw(q)+' MT ÷ '+fmtRaw(d)+' t/m³ = '+fmtRaw(r)+' m³';
+  w.textContent = words;
+  return {
+    direction: UI.m3mt.dir, qty: q, density: d, temp: num($('#mmTemp').value),
+    result: r, unit: unit, resultDisplay: fmtRaw(r)+' '+unit,
+    plainWords: words, note: $('#mmNote').value.trim()
+  };
+}
+/* ---- Quick ETC ---- */
+function etcCalc(){
+  var total = num($('#etTotal').value), done = num($('#etDone').value), rate = num($('#etRate').value);
+  var from = parseLocalInput($('#etFrom').value) || nowMs();
+  var out = $('#etOut'), out2 = $('#etOut2'), w = $('#etWords');
+  if(!isFinite(total) || !isFinite(rate) || rate <= 0){ out.textContent='—'; out2.textContent='Estimated completion —'; w.textContent=''; return null; }
+  if(!isFinite(done)) done = 0;
+  var remaining = total - done;
+  if(remaining < 0) remaining = 0;
+  var hours = remaining / rate;
+  var etcAt = from + hours*3600000;
+  out.textContent = fmtDur(hours);
+  out2.textContent = 'Estimated completion ' + fmtAbs(etcAt);
+  var words = UI.etc.op+' — '+fmtRaw(remaining)+' '+UI.etc.unit+' left at '+fmtRaw(rate)+' '+UI.etc.unit+'/hr = '+fmtDur(hours);
+  w.textContent = words;
+  return {
+    unit: UI.etc.unit, operation: UI.etc.op, total: total, done: done, rate: rate,
+    remaining: remaining, hours: hours, fromAt: from, etcAt: etcAt,
+    result: hours, resultDisplay: fmtDur(hours), plainWords: words, note: $('#etNote').value.trim()
+  };
+}
+/* ---- Line displacement ---- */
+function lineVolume(diaIn, lenM){ return Math.PI/4 * Math.pow(diaIn*IN_TO_M, 2) * lenM; }
+function lineRenderRows(){
+  var tb = $('#lnTable tbody'); tb.innerHTML = '';
+  UI.line.rows.forEach(function(r, i){
+    var tr = el('tr');
+    tr.innerHTML = '<td>'+(i+1)+'</td>'+
+      '<td class="num"><input type="number" inputmode="decimal" data-r="'+i+'" data-f="dia" value="'+esc(r.dia)+'"></td>'+
+      '<td class="num"><input type="number" inputmode="decimal" data-r="'+i+'" data-f="len" value="'+esc(r.len)+'"></td>'+
+      '<td><button class="iconbtn" data-del="'+i+'" aria-label="Remove line">✕</button></td>';
+    tb.appendChild(tr);
+  });
+  $$('#lnTable input').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      UI.line.rows[+inp.dataset.r][inp.dataset.f] = inp.value; lineCalc();
+    });
+  });
+  $$('#lnTable [data-del]').forEach(function(b){
+    b.addEventListener('click', function(){
+      UI.line.rows.splice(+b.dataset.del, 1);
+      if(!UI.line.rows.length) UI.line.rows.push({dia:'',len:''});
+      lineRenderRows(); lineCalc();
+    });
+  });
+}
+function lineCalc(){
+  var out = $('#lnOut'), out2 = $('#lnOut2'), w = $('#lnWords');
+  var data = null;
+  if(UI.line.mode === 'single'){
+    var d = num($('#lnDia').value), L = num($('#lnLen').value);
+    if(!isFinite(d) || !isFinite(L)){ out.textContent='—'; out2.textContent=''; w.textContent=''; return null; }
+    var lenM = UI.line.lenUnit === 'ft' ? L*FT_TO_M : L;
+    var v = lineVolume(d, lenM);
+    out.textContent = fmtNum(v) + ' m³';
+    out2.textContent = fmtNum(v*M3_TO_BBL) + ' bbl';
+    var words = 'π/4 × ('+fmtRaw(d)+' in × 0.0254)² × '+fmtRaw(lenM)+' m = '+fmtRaw(v)+' m³';
+    w.textContent = words;
+    data = {mode:'single', lines:[{dia:d, len:lenM}], lenUnitEntered:UI.line.lenUnit,
+      totalM3:v, totalBbl:v*M3_TO_BBL, result:v, resultDisplay:fmtRaw(v)+' m³',
+      plainWords:words, note:$('#lnNote').value.trim()};
+  } else {
+    var tot = 0, lines = [], any = false;
+    UI.line.rows.forEach(function(r){
+      var dd = num(r.dia), ll = num(r.len);
+      if(isFinite(dd) && isFinite(ll)){ var vv = lineVolume(dd, ll); tot += vv; lines.push({dia:dd, len:ll, vol:vv}); any = true; }
+    });
+    if(!any){ out.textContent='—'; out2.textContent=''; w.textContent=''; return null; }
+    out.textContent = fmtNum(tot) + ' m³';
+    out2.textContent = fmtNum(tot*M3_TO_BBL) + ' bbl · ' + lines.length + ' line' + (lines.length>1?'s':'');
+    var words2 = lines.length + ' lines totalling ' + fmtRaw(tot) + ' m³';
+    w.textContent = words2;
+    data = {mode:'multi', lines:lines, lenUnitEntered:'m', totalM3:tot, totalBbl:tot*M3_TO_BBL,
+      result:tot, resultDisplay:fmtRaw(tot)+' m³', plainWords:words2, note:$('#lnNote').value.trim()};
+  }
+  $('#lnOutLbl').textContent = UI.line.mode === 'single' ? 'Volume in line' : 'Total volume · all lines';
+  return data;
+}
+/* ---- Flow rate ---- */
+function flowCalc(){
+  var d = num($('#flDia').value), v = num($('#flVel').value);
+  var out = $('#flOut'), out2 = $('#flOut2'), w = $('#flWords');
+  if(!isFinite(d) || !isFinite(v)){ out.textContent='—'; out2.textContent=''; w.textContent=''; return null; }
+  var area = Math.PI/4 * Math.pow(d*IN_TO_M, 2);
+  var q = area * v * 3600;
+  out.textContent = fmtNum(q) + ' m³/hr';
+  out2.textContent = fmtNum(q*M3_TO_BBL) + ' bbl/hr · area ' + fmtNum(area) + ' m²';
+  var words = 'π/4 × ('+fmtRaw(d)+' in × 0.0254)² × '+fmtRaw(v)+' m/s × 3600 = '+fmtRaw(q)+' m³/hr';
+  w.textContent = words;
+  return {dia:d, velocity:v, area:area, m3hr:q, bblhr:q*M3_TO_BBL,
+    result:q, resultDisplay:fmtRaw(q)+' m³/hr', plainWords:words, note:$('#flNote').value.trim()};
+}
+/* ---- Tank rinsing ---- */
+function defaultTanks(){
+  var t = [];
+  for(var i=1;i<=10;i++){ t.push({id:'p'+i, name:'COT '+i+'P', side:'P', row:i});
+                          t.push({id:'s'+i, name:'COT '+i+'S', side:'S', row:i}); }
+  return t;
+}
+function getTanks(){ return metaGet('tanks', null) || defaultTanks(); }
+function rinseRenderTanks(){
+  var tanks = getTanks(), box = $('#rnTanks');
+  box.innerHTML = '';
+  var rows = {};
+  tanks.forEach(function(t){ rows[t.row] = rows[t.row] || {}; rows[t.row][t.side] = t; });
+  var keys = Object.keys(rows).sort(function(a,b){ return a-b; });
+  var colP = el('div','tankcol'), colMid = el('div','tankcol'), colS = el('div','tankcol');
+  keys.forEach(function(k){
+    var r = rows[k];
+    [['P', colP], ['S', colS]].forEach(function(pair){
+      var t = r[pair[0]];
+      var b = el('button','tankbtn', t ? t.name : '—');
+      if(t){
+        b.setAttribute('aria-pressed', String(!!UI.rinse.tanks[t.id]));
+        b.addEventListener('click', function(){
+          if(UI.rinse.tanks[t.id]) delete UI.rinse.tanks[t.id]; else UI.rinse.tanks[t.id] = t.name;
+          rinseRenderTanks(); rinseCalc();
+        });
+      } else { b.disabled = true; }
+      pair[1].appendChild(b);
+    });
+    var w = el('button','tankw','W');
+    w.setAttribute('aria-label','Set both wing tanks in row '+k);
+    w.addEventListener('click', function(){
+      var both = r.P && r.S && UI.rinse.tanks[r.P.id] && UI.rinse.tanks[r.S.id];
+      [r.P, r.S].forEach(function(t){
+        if(!t) return;
+        if(both) delete UI.rinse.tanks[t.id]; else UI.rinse.tanks[t.id] = t.name;
+      });
+      rinseRenderTanks(); rinseCalc();
+    });
+    colMid.appendChild(w);
+  });
+  box.appendChild(colP); box.appendChild(colMid); box.appendChild(colS);
+}
+function rinseCalc(){
+  var fo = num($('#rnFxOut').value) || 0, fn = num($('#rnFxN').value) || 0, fm = num($('#rnFxMin').value) || 0;
+  var po = 0, pn = 0, pm = 0;
+  if(UI.rinse.portable){
+    po = num($('#rnPtOut').value) || 0; pn = num($('#rnPtN').value) || 0; pm = num($('#rnPtMin').value) || 0;
+  }
+  var perTank = (fo*fn*fm/60) + (po*pn*pm/60);
+  var names = Object.keys(UI.rinse.tanks).map(function(k){ return UI.rinse.tanks[k]; });
+  var total = perTank * names.length;
+  $('#rnOut').textContent = fmtFix(total, 2) + ' m³';
+  $('#rnOut2').textContent = names.length + ' tank' + (names.length===1?'':'s') + ' · ' + fmtFix(perTank,2) + ' m³ per tank';
+  var words = names.length + ' tanks × ' + fmtRaw(perTank) + ' m³ = ' + fmtRaw(total) + ' m³ fresh water';
+  $('#rnWords').textContent = names.length ? words : '';
+  if(!names.length || perTank <= 0) return null;
+  return {
+    fixed:{out:fo, machines:fn, minutes:fm},
+    portable: UI.rinse.portable ? {out:po, machines:pn, minutes:pm} : null,
+    tanks: names, perTank: perTank, total: total,
+    result: total, resultDisplay: fmtFix(total,2)+' m³',
+    plainWords: words, note: $('#rnNote').value.trim()
+  };
+}
+function manageTanksSheet(){
+  var tanks = getTanks().slice();
+  function body(){
+    return '<p class="small muted">Set your ship up once — the list is remembered. Rename inline; changes save as you type.</p>'+
+      '<div class="scrollx"><table class="data"><thead><tr><th>Row</th><th>Port</th><th>Stbd</th><th></th></tr></thead><tbody id="mtBody"></tbody></table></div>'+
+      '<div class="row mt8"><button class="btn" id="mtAdd">+ Add row</button>'+
+      '<button class="btn ghost" id="mtReset">Reset to COT 1–10 P/S</button></div>';
+  }
+  openSheet('Manage tanks', body(), function(b){
+    function draw(){
+      var rows = {};
+      tanks.forEach(function(t){ rows[t.row] = rows[t.row] || {}; rows[t.row][t.side] = t; });
+      var keys = Object.keys(rows).sort(function(a,b){ return a-b; });
+      var tb = b.querySelector('#mtBody'); tb.innerHTML = '';
+      keys.forEach(function(k){
+        var r = rows[k], tr = el('tr');
+        tr.innerHTML = '<td>'+k+'</td>'+
+          '<td><input type="text" data-id="'+esc(r.P?r.P.id:'')+'" value="'+esc(r.P?r.P.name:'')+'"></td>'+
+          '<td><input type="text" data-id="'+esc(r.S?r.S.id:'')+'" value="'+esc(r.S?r.S.name:'')+'"></td>'+
+          '<td><button class="iconbtn" data-drow="'+k+'" aria-label="Remove row">✕</button></td>';
+        tb.appendChild(tr);
+      });
+      $$('#mtBody input', b).forEach(function(inp){
+        inp.addEventListener('input', function(){
+          tanks.forEach(function(t){ if(t.id === inp.dataset.id) t.name = inp.value; });
+          save();
+        });
+      });
+      $$('#mtBody [data-drow]', b).forEach(function(btn){
+        btn.addEventListener('click', function(){
+          tanks = tanks.filter(function(t){ return String(t.row) !== btn.dataset.drow; });
+          save(); draw();
+        });
+      });
+    }
+    function save(){ metaSet('tanks', tanks).then(function(){ rinseRenderTanks(); rinseCalc(); }); }
+    b.querySelector('#mtAdd').addEventListener('click', function(){
+      var max = 0; tanks.forEach(function(t){ max = Math.max(max, t.row); });
+      var n = max+1;
+      tanks.push({id:'p'+n, name:'COT '+n+'P', side:'P', row:n});
+      tanks.push({id:'s'+n, name:'COT '+n+'S', side:'S', row:n});
+      save(); draw();
+    });
+    b.querySelector('#mtReset').addEventListener('click', function(){
+      tanks = defaultTanks(); save(); draw();
+    });
+    draw();
+  });
+}
+/* ---- Interpolation ---- */
+function interpCalc(){
+  var x1 = num($('#ipX1').value), y1 = num($('#ipY1').value),
+      x2 = num($('#ipX2').value), y2 = num($('#ipY2').value), v = num($('#ipIn').value);
+  var solve = UI.interp.solve, dec = UI.interp.dec;
+  $('#ipInLbl').textContent = solve === 'y' ? 'X' : 'Y';
+  $('#ipOutLbl').textContent = solve === 'y' ? 'Y =' : 'X =';
+  var out = $('#ipOut'), w = $('#ipWords');
+  if(![x1,y1,x2,y2,v].every(isFinite)){ out.textContent='—'; w.textContent=''; return null; }
+  var r, words;
+  if(solve === 'y'){
+    if(x2 === x1){ out.textContent='—'; w.textContent='X₁ and X₂ must differ.'; return null; }
+    r = y1 + (v-x1)*(y2-y1)/(x2-x1);
+    words = 'Y = '+fmtRaw(y1)+' + ('+fmtRaw(v)+' − '+fmtRaw(x1)+') × ('+fmtRaw(y2)+' − '+fmtRaw(y1)+') ÷ ('+fmtRaw(x2)+' − '+fmtRaw(x1)+') = '+r.toFixed(dec);
+  } else {
+    if(y2 === y1){ out.textContent='—'; w.textContent='Y₁ and Y₂ must differ.'; return null; }
+    r = x1 + (v-y1)*(x2-x1)/(y2-y1);
+    words = 'X = '+fmtRaw(x1)+' + ('+fmtRaw(v)+' − '+fmtRaw(y1)+') × ('+fmtRaw(x2)+' − '+fmtRaw(x1)+') ÷ ('+fmtRaw(y2)+' − '+fmtRaw(y1)+') = '+r.toFixed(dec);
+  }
+  out.textContent = fmtFix(r, dec);
+  w.textContent = words;
+  return {x1:x1, y1:y1, x2:x2, y2:y2, solveFor:solve, input:v, decimals:dec,
+    result:r, resultDisplay:r.toFixed(dec), plainWords:words, note:$('#ipNote').value.trim()};
+}
+
+/* ============================================================
+   RECORD REGISTRY — one place that knows how each type reads
+   ============================================================ */
+var REG = {
+  calc:   {label:'Calculator', icon:'🔢'},
+  convert:{label:'Converter', icon:'📏'},
+  m3mt:   {label:'m³ ⇆ MT', icon:'⚖'},
+  etc:    {label:'Quick ETC', icon:'⏳'},
+  line:   {label:'Line displacement', icon:'📐'},
+  flow:   {label:'Flow rate', icon:'🌊'},
+  rinse:  {label:'Tank rinsing', icon:'🚿'},
+  interp: {label:'Interpolation', icon:'📈'},
+  cargo:  {label:'Cargo operation', icon:'🚢'}
+};
+function typeLabel(t){ return (REG[t] && REG[t].label) || t; }
+function summaryOf(r){
+  var d = r.data || {};
+  switch(r.type){
+    case 'calc': return d.expressionDisplay || displayExpr(d.expression || '');
+    case 'convert': return fmtNum(d.fromValue)+' '+unitShort(d.fromUnit||'')+' → '+unitShort(d.toUnit||'');
+    case 'm3mt': return (d.direction === 'v2w')
+      ? fmtNum(d.qty)+' m³ × '+fmtNum(d.density)+' t/m³'
+      : fmtNum(d.qty)+' MT ÷ '+fmtNum(d.density)+' t/m³';
+    case 'etc': return d.operation+' · '+fmtNum(d.remaining)+' '+d.unit+' left at '+fmtNum(d.rate)+'/hr';
+    case 'line': return (d.mode === 'multi')
+      ? (d.lines||[]).length+' lines'
+      : fmtNum((d.lines&&d.lines[0]||{}).dia)+' in × '+fmtNum((d.lines&&d.lines[0]||{}).len)+' m';
+    case 'flow': return fmtNum(d.dia)+' in at '+fmtNum(d.velocity)+' m/s';
+    case 'rinse': return (d.tanks||[]).length+' tanks · '+fmtNum(d.perTank)+' m³ each';
+    case 'interp': return (d.solveFor === 'y' ? 'Y at X=' : 'X at Y=')+fmtNum(d.input);
+    case 'cargo': return (d.opName||'Operation')+' · '+(d.grades||[]).length+' grade'+((d.grades||[]).length===1?'':'s');
+  }
+  return r.type;
+}
+function resultOf(r){
+  var d = r.data || {};
+  if(r.type === 'calc') return d.resultDisplay != null ? d.resultDisplay : '';
+  if(r.type === 'cargo') return cargoTotalsText(r);
+  return d.resultDisplay || (d.result != null ? fmtRaw(d.result) : '');
+}
+function resultNumberOf(r){
+  var d = r.data || {};
+  if(r.type === 'calc') return typeof d.resultRaw === 'number' ? d.resultRaw : NaN;
+  if(typeof d.result === 'number') return d.result;
+  return NaN;
+}
+function resultUnitOf(r){
+  var d = r.data || {};
+  switch(r.type){
+    case 'convert': return unitShort(d.toUnit||'');
+    case 'm3mt': return d.unit || '';
+    case 'etc': return 'hours';
+    case 'line': return 'm³';
+    case 'flow': return 'm³/hr';
+    case 'rinse': return 'm³';
+    default: return '';
+  }
+}
+function detailRows(r){
+  var d = r.data || {}, out = [];
+  function add(k, v){ if(v !== undefined && v !== null && v !== '' && v === v) out.push([k, v]); }
+  switch(r.type){
+    case 'calc':
+      add('Expression', d.expressionDisplay || displayExpr(d.expression||''));
+      add('Result', d.resultDisplay); add('Angle mode', d.angleMode === 'rad' ? 'Radians' : 'Degrees');
+      break;
+    case 'convert':
+      add('Category', d.category); add('From', fmtNum(d.fromValue)+' '+(d.fromUnit||''));
+      add('To', fmtNum(d.toValue)+' '+(d.toUnit||''));
+      break;
+    case 'm3mt':
+      add('Direction', d.direction === 'v2w' ? 'm³ → MT' : 'MT → m³');
+      add('Quantity', fmtNum(d.qty)); add('Density', fmtNum(d.density)+' t/m³');
+      if(isFinite(d.temp)) add('Cargo temp', fmtNum(d.temp)+' °C');
+      add('Result', d.resultDisplay);
+      break;
+    case 'etc':
+      add('Operation', d.operation); add('Total', fmtNum(d.total)+' '+d.unit);
+      add('Done', fmtNum(d.done)+' '+d.unit); add('Remaining', fmtNum(d.remaining)+' '+d.unit);
+      add('Rate', fmtNum(d.rate)+' '+d.unit+'/hr'); add('Time remaining', fmtDur(d.hours));
+      add('Counting from', fmtAbs(d.fromAt)); add('Estimated completion', fmtAbs(d.etcAt));
+      break;
+    case 'line':
+      add('Mode', d.mode === 'multi' ? 'Multiple lines' : 'Single line');
+      (d.lines||[]).forEach(function(l, i){ add('Line '+(i+1), fmtNum(l.dia)+' in × '+fmtNum(l.len)+' m'); });
+      add('Total volume', fmtNum(d.totalM3)+' m³'); add('In barrels', fmtNum(d.totalBbl)+' bbl');
+      break;
+    case 'flow':
+      add('Diameter', fmtNum(d.dia)+' in'); add('Velocity', fmtNum(d.velocity)+' m/s');
+      add('Bore area', fmtNum(d.area)+' m²');
+      add('Flow rate', fmtNum(d.m3hr)+' m³/hr'); add('In barrels', fmtNum(d.bblhr)+' bbl/hr');
+      break;
+    case 'rinse':
+      if(d.fixed) add('Fixed machines', fmtNum(d.fixed.out)+' m³/hr × '+fmtNum(d.fixed.machines)+' × '+fmtNum(d.fixed.minutes)+' min');
+      if(d.portable) add('Portable machines', fmtNum(d.portable.out)+' m³/hr × '+fmtNum(d.portable.machines)+' × '+fmtNum(d.portable.minutes)+' min');
+      add('Per tank', fmtNum(d.perTank)+' m³');
+      add('Tanks', (d.tanks||[]).join(', '));
+      add('Total fresh water', fmtNum(d.total)+' m³');
+      break;
+    case 'interp':
+      add('Point 1', 'X₁ '+fmtNum(d.x1)+' · Y₁ '+fmtNum(d.y1));
+      add('Point 2', 'X₂ '+fmtNum(d.x2)+' · Y₂ '+fmtNum(d.y2));
+      add('Solved for', d.solveFor === 'y' ? 'Y from X' : 'X from Y');
+      add('Input', fmtNum(d.input)); add('Result', d.resultDisplay);
+      break;
+    case 'cargo':
+      add('Port', d.port); add('Operation', d.operation === 'disch' ? 'Discharging' : 'Loading');
+      add('Started', fmtAbs(d.startedAt));
+      (d.grades||[]).forEach(function(g){ add('Grade · '+g.name, fmtNum(g.total)+' '+g.unit+' at '+fmtNum(g.rate)+' '+g.unit+'/hr'); });
+      add('Figures logged', (d.updates||[]).length);
+      add('Stoppages', (d.stoppages||[]).length);
+      break;
+  }
+  if(d.note) out.push(['Note', d.note]);
+  return out;
+}
+</script>
+<script>
+"use strict";
+/* ============================================================
+   CARGO OPERATION — live, multi-grade
+   Rate is measured from the last two figures over ACTIVE time.
+   Stopped time is excluded from every rate and every ETC.
+   ============================================================ */
+var CG = {openId:null, timer:null};
+
+function cargoNew(){
+  var d = {
+    opName:'', port:'', operation:'load', startedAt: nowMs(), status:'active',
+    grades:[], updates:[], stoppages:[], note:'', eventAt: nowMs()
+  };
+  cargoEditSheet(null, d);
+}
+function cargoEditSheet(rec, draft){
+  var d = rec ? JSON.parse(JSON.stringify(rec.data)) : draft;
+  var html =
+    '<div class="field"><label for="cgName">Operation name</label><input type="text" id="cgName" value="'+esc(d.opName||'')+'" placeholder="e.g. Ras Tanura loading"></div>'+
+    '<div class="field"><label for="cgPort">Port / berth</label><input type="text" id="cgPort" value="'+esc(d.port||'')+'"></div>'+
+    '<div class="field"><span class="lbl">Operation</span><div class="seg" id="cgOpSeg">'+
+      '<button data-v="load" aria-pressed="'+(d.operation!=='disch')+'">Loading</button>'+
+      '<button data-v="disch" aria-pressed="'+(d.operation==='disch')+'">Discharging</button></div></div>'+
+    '<div class="field"><label for="cgStart">Started at</label><input type="datetime-local" id="cgStart" value="'+esc(localInputValue(d.startedAt||nowMs()))+'"></div>'+
+    '<h4 class="mt16">Grades</h4><div id="cgGradeEdit"></div>'+
+    '<button class="btn mt8" id="cgAddGrade">+ Add grade</button>'+
+    '<div class="field mt16"><label for="cgNote">Note</label><input type="text" id="cgNote" value="'+esc(d.note||'')+'"></div>'+
+    '<div class="row mt16"><button class="btn primary grow" id="cgSaveOp">'+(rec?'Save changes':'Start operation')+'</button></div>';
+  openSheet(rec ? 'Edit operation' : 'New cargo operation', html, function(b){
+    var op = d.operation || 'load';
+    $$('#cgOpSeg button', b).forEach(function(btn){
+      btn.addEventListener('click', function(){
+        op = btn.dataset.v;
+        $$('#cgOpSeg button', b).forEach(function(x){ x.setAttribute('aria-pressed', String(x === btn)); });
+      });
+    });
+    var grades = (d.grades||[]).slice();
+    if(!grades.length) grades.push({id:uid(), name:'Grade 1', total:'', unit:'m³', density:'', rate:''});
+    function drawGrades(){
+      var box = b.querySelector('#cgGradeEdit'); box.innerHTML = '';
+      grades.forEach(function(g, i){
+        var c = el('div','gradecard');
+        c.innerHTML =
+          '<div class="row"><input type="text" class="grow" data-g="'+i+'" data-f="name" value="'+esc(g.name||'')+'" placeholder="Grade name">'+
+          '<button class="iconbtn" data-gdel="'+i+'" aria-label="Remove grade">✕</button></div>'+
+          '<div class="row mt8">'+
+            '<div class="grow"><span class="lbl">Total quantity</span><input type="number" inputmode="decimal" data-g="'+i+'" data-f="total" value="'+esc(g.total)+'"></div>'+
+            '<div class="grow"><span class="lbl">Unit</span><select data-g="'+i+'" data-f="unit">'+
+              '<option'+(g.unit==='m³'?' selected':'')+'>m³</option><option'+(g.unit==='MT'?' selected':'')+'>MT</option>'+
+              '<option'+(g.unit==='bbl'?' selected':'')+'>bbl</option></select></div>'+
+          '</div>'+
+          '<div class="row mt8">'+
+            '<div class="grow"><span class="lbl">Planned rate / hr</span><input type="number" inputmode="decimal" data-g="'+i+'" data-f="rate" value="'+esc(g.rate)+'"></div>'+
+            '<div class="grow"><span class="lbl">Density (t/m³)</span><input type="number" inputmode="decimal" data-g="'+i+'" data-f="density" value="'+esc(g.density)+'"></div>'+
+          '</div>';
+        box.appendChild(c);
+      });
+      $$('#cgGradeEdit [data-g]', b).forEach(function(inp){
+        inp.addEventListener('input', function(){ grades[+inp.dataset.g][inp.dataset.f] = inp.value; });
+        inp.addEventListener('change', function(){ grades[+inp.dataset.g][inp.dataset.f] = inp.value; });
+      });
+      $$('#cgGradeEdit [data-gdel]', b).forEach(function(btn){
+        btn.addEventListener('click', function(){
+          grades.splice(+btn.dataset.gdel, 1);
+          if(!grades.length) grades.push({id:uid(), name:'Grade 1', total:'', unit:'m³', density:'', rate:''});
+          drawGrades();
+        });
+      });
+    }
+    b.querySelector('#cgAddGrade').addEventListener('click', function(){
+      grades.push({id:uid(), name:'Grade '+(grades.length+1), total:'', unit:'m³', density:'', rate:''});
+      drawGrades();
+    });
+    drawGrades();
+    b.querySelector('#cgSaveOp').addEventListener('click', function(){
+      var payload = {
+        opName: b.querySelector('#cgName').value.trim() || 'Cargo operation',
+        port: b.querySelector('#cgPort').value.trim(),
+        operation: op,
+        startedAt: parseLocalInput(b.querySelector('#cgStart').value) || nowMs(),
+        note: b.querySelector('#cgNote').value.trim(),
+        grades: grades.map(function(g){
+          return {id:g.id||uid(), name:g.name||'Grade', total:num(g.total)||0, unit:g.unit||'m³',
+                  density:num(g.density), rate:num(g.rate)||0};
+        })
+      };
+      if(rec){
+        updateRecord(rec, payload, 'edited operation').then(function(){ goBack(); cargoRender(); renderCargoList(); });
+      } else {
+        payload.status = 'active'; payload.updates = []; payload.stoppages = []; payload.eventAt = payload.startedAt;
+        createRecord('cargo', payload, payload.opName).then(function(r){
+          goBack(); CG.openId = r.id; nav('scr-cargoop'); cargoRender(); renderCargoList();
+        });
+      }
+    });
+  });
+}
+/* ---- time maths ---- */
+function stoppageOverlap(a, b, stops){
+  var t = 0;
+  (stops||[]).forEach(function(s){
+    var f = s.from, to = s.to || nowMs();
+    var lo = Math.max(a, f), hi = Math.min(b, to);
+    if(hi > lo) t += hi - lo;
+  });
+  return t;
+}
+function activeHours(a, b, stops){
+  if(!(b > a)) return 0;
+  return Math.max(0, (b - a) - stoppageOverlap(a, b, stops)) / 3600000;
+}
+function isStopped(rec){
+  return (rec.data.stoppages||[]).some(function(s){ return !s.to; });
+}
+function gradeUpdates(rec, gid){
+  return (rec.data.updates||[]).filter(function(u){ return u.gradeId === gid; })
+    .sort(function(a,b){ return a.at - b.at; });
+}
+function gradeState(rec, g){
+  var d = rec.data, ups = gradeUpdates(rec, g.id), stops = d.stoppages || [];
+  var st = {rate:g.rate||0, rateSource:'planned', lastQty:0, lastAt:d.startedAt, projected:0,
+            remaining:g.total||0, pct:0, etcAt:null, hoursLeft:NaN};
+  if(ups.length){
+    var last = ups[ups.length-1];
+    st.lastQty = last.qty; st.lastAt = last.at;
+    if(ups.length >= 2){
+      var prev = ups[ups.length-2];
+      var h = activeHours(prev.at, last.at, stops);
+      if(h > 0.02){ st.rate = (last.qty - prev.qty)/h; st.rateSource = 'measured'; }
+    } else {
+      var h1 = activeHours(d.startedAt, last.at, stops);
+      if(h1 > 0.02 && last.qty > 0){ st.rate = last.qty/h1; st.rateSource = 'measured'; }
+    }
+  }
+  var live = d.status === 'closed' ? st.lastAt : nowMs();
+  var elapsed = activeHours(st.lastAt, live, stops);
+  st.projected = st.lastQty + st.rate*elapsed;
+  if(g.total > 0) st.projected = Math.min(st.projected, g.total);
+  if(st.projected < 0) st.projected = 0;
+  st.remaining = Math.max(0, (g.total||0) - st.projected);
+  st.pct = g.total > 0 ? clamp(st.projected/g.total*100, 0, 100) : 0;
+  if(st.rate > 0 && st.remaining > 0){
+    st.hoursLeft = st.remaining/st.rate;
+    st.etcAt = nowMs() + st.hoursLeft*3600000;
+  } else if(st.remaining <= 0){ st.hoursLeft = 0; st.etcAt = null; }
+  return st;
+}
+function qtyAt(rec, g, t){
+  var d = rec.data, stops = d.stoppages||[], ups = gradeUpdates(rec, g.id);
+  if(!ups.length) return 0;
+  if(t <= ups[0].at){
+    var h0 = activeHours(d.startedAt, ups[0].at, stops);
+    if(h0 <= 0) return ups[0].qty;
+    var f = activeHours(d.startedAt, t, stops)/h0;
+    return clamp(f, 0, 1) * ups[0].qty;
+  }
+  for(var i=1;i<ups.length;i++){
+    if(t <= ups[i].at){
+      var a = ups[i-1], b = ups[i];
+      var span = activeHours(a.at, b.at, stops);
+      if(span <= 0) return b.qty;
+      var frac = activeHours(a.at, t, stops)/span;
+      return a.qty + (b.qty - a.qty)*clamp(frac, 0, 1);
+    }
+  }
+  var st = gradeState(rec, g), lastU = ups[ups.length-1];
+  var v = lastU.qty + st.rate*activeHours(lastU.at, t, stops);
+  return g.total > 0 ? Math.min(v, g.total) : v;
+}
+function cargoTotalsText(rec){
+  var d = rec.data, byUnit = {};
+  (d.grades||[]).forEach(function(g){
+    var st = gradeState(rec, g);
+    byUnit[g.unit] = byUnit[g.unit] || {done:0, total:0};
+    byUnit[g.unit].done += st.projected;
+    byUnit[g.unit].total += g.total||0;
+  });
+  return Object.keys(byUnit).map(function(u){
+    var b = byUnit[u];
+    var pc = b.total > 0 ? ' ('+(b.done/b.total*100).toFixed(1)+'%)' : '';
+    return fmtNum(Math.round(b.done*100)/100)+' / '+fmtNum(b.total)+' '+u+pc;
+  }).join(' · ') || 'No grades';
+}
+/* ---- rendering ---- */
+function renderCargoList(){
+  var box = $('#cgList');
+  var ops = liveRecords('cargo');
+  if(!ops.length){
+    box.innerHTML = '<div class="empty"><div class="big">🚢</div><p>No cargo operation yet.</p>'+
+      '<p class="small">Tap ＋ to start one. Add your grades, then log a figure whenever you take one — the app works out the rate and the completion time from the figures themselves.</p></div>';
+    return;
+  }
+  box.innerHTML = '';
+  ops.forEach(function(r){
+    var d = r.data, stopped = isStopped(r);
+    var c = el('button','menu-item');
+    c.innerHTML = '<span class="ic">'+(d.status === 'closed' ? '✔' : (stopped ? '⏸' : '🚢'))+'</span>'+
+      '<span class="grow"><span class="t">'+esc(d.opName||'Operation')+'</span><br>'+
+      '<span class="d">'+esc(d.port||'—')+' · '+(d.operation === 'disch' ? 'Discharging' : 'Loading')+' · '+esc(cargoTotalsText(r))+'</span><br>'+
+      '<span class="d">'+(d.status === 'closed' ? 'Closed' : (stopped ? 'Stopped' : 'Running'))+' · started '+fmtAbs(d.startedAt)+'</span></span>';
+    c.addEventListener('click', function(){ CG.openId = r.id; nav('scr-cargoop'); cargoRender(); });
+    box.appendChild(c);
+  });
+}
+function cargoRender(){
+  var rec = getRec(CG.openId);
+  if(!rec){ return; }
+  var d = rec.data, stopped = isStopped(rec), closed = d.status === 'closed';
+  $('#cgTitle').textContent = d.opName || 'Operation';
+  var sum = $('#cgSummary');
+  sum.className = 'card' + (stopped ? ' stopped' : '');
+  sum.innerHTML =
+    '<div class="row" style="justify-content:space-between">'+
+      '<div><span class="live-dot"></span><strong>'+(closed ? 'Closed' : (stopped ? 'Stopped' : 'Running'))+'</strong></div>'+
+      '<span class="badge">'+(d.operation === 'disch' ? 'Discharging' : 'Loading')+'</span></div>'+
+    '<div class="kv"><span class="k">Port / berth</span><span class="v">'+esc(d.port||'—')+'</span></div>'+
+    '<div class="kv"><span class="k">Started</span><span class="v">'+fmtAbs(d.startedAt)+'</span></div>'+
+    '<div class="kv"><span class="k">Elapsed (active)</span><span class="v">'+fmtDur(activeHours(d.startedAt, closed ? lastEventAt(rec) : nowMs(), d.stoppages))+'</span></div>'+
+    '<div class="kv"><span class="k">Stopped time</span><span class="v">'+fmtDur(stoppageOverlap(d.startedAt, nowMs(), d.stoppages)/3600000)+'</span></div>'+
+    '<div class="kv"><span class="k">Progress</span><span class="v">'+esc(cargoTotalsText(rec))+'</span></div>';
+
+  var gb = $('#cgGrades'); gb.innerHTML = '';
+  (d.grades||[]).forEach(function(g){
+    var st = gradeState(rec, g);
+    var c = el('div','gradecard');
+    var etcText = stopped ? 'On hold' : (st.etcAt ? fmtAbs(st.etcAt) : (st.remaining <= 0 ? 'Complete' : '—'));
+    c.innerHTML =
+      '<div class="row" style="justify-content:space-between"><span class="name">'+esc(g.name)+'</span>'+
+      '<span class="badge'+(st.rateSource === 'measured' ? ' ok' : '')+'">'+(st.rateSource === 'measured' ? 'measured rate' : 'planned rate')+'</span></div>'+
+      '<div class="bar"><i style="width:'+st.pct.toFixed(1)+'%"></i></div>'+
+      '<div class="kv"><span class="k">Onboard now (projected)</span><span class="v">'+fmtNum(Math.round(st.projected*100)/100)+' '+esc(g.unit)+'</span></div>'+
+      '<div class="kv"><span class="k">Last figure</span><span class="v">'+fmtNum(st.lastQty)+' '+esc(g.unit)+' at '+fmtTime(st.lastAt)+'</span></div>'+
+      '<div class="kv"><span class="k">Rate</span><span class="v">'+fmtNum(Math.round(st.rate*10)/10)+' '+esc(g.unit)+'/hr</span></div>'+
+      '<div class="kv"><span class="k">Remaining</span><span class="v">'+fmtNum(Math.round(st.remaining*100)/100)+' '+esc(g.unit)+'</span></div>'+
+      '<div class="kv"><span class="k">Time to go</span><span class="v">'+(stopped ? 'On hold' : fmtDur(st.hoursLeft))+'</span></div>'+
+      '<div class="kv"><span class="k">ETC</span><span class="v">'+esc(etcText)+'</span></div>'+
+      (isFinite(g.density) && g.density > 0 && g.unit === 'm³'
+        ? '<div class="kv"><span class="k">Weight at '+fmtNum(g.density)+' t/m³</span><span class="v">'+fmtNum(Math.round(st.projected*g.density*100)/100)+' MT</span></div>' : '');
+    gb.appendChild(c);
+  });
+
+  var tb = $('#cgUpdates tbody'); tb.innerHTML = '';
+  var ups = (d.updates||[]).slice().sort(function(a,b){ return b.at - a.at; });
+  if(!ups.length){
+    tb.innerHTML = '<tr><td colspan="6" class="muted">No figures logged yet.</td></tr>';
+  }
+  ups.forEach(function(u){
+    var g = (d.grades||[]).filter(function(x){ return x.id === u.gradeId; })[0] || {name:'—', unit:''};
+    var prior = gradeUpdates(rec, u.gradeId).filter(function(x){ return x.at < u.at; });
+    var prev = prior.length ? prior[prior.length-1] : null;
+    var delta = prev ? u.qty - prev.qty : u.qty;
+    var hrs = prev ? activeHours(prev.at, u.at, d.stoppages) : activeHours(d.startedAt, u.at, d.stoppages);
+    var rate = hrs > 0 ? delta/hrs : NaN;
+    var tr = el('tr');
+    tr.innerHTML = '<td>'+fmtDate(u.at)+'<br><span class="muted tiny">'+fmtTime(u.at)+'</span></td>'+
+      '<td>'+esc(g.name)+'</td>'+
+      '<td class="num">'+fmtNum(u.qty)+'</td>'+
+      '<td class="num">'+fmtNum(Math.round(delta*100)/100)+'</td>'+
+      '<td class="num">'+(isFinite(rate) ? fmtNum(Math.round(rate*10)/10) : '—')+'</td>'+
+      '<td>'+esc(u.note||'')+(u.pressure ? '<br><span class="muted tiny">'+esc(u.pressure)+' bar</span>' : '')+'</td>';
+    tb.appendChild(tr);
+  });
+
+  var sb = $('#cgStops'); sb.innerHTML = '';
+  var stops = (d.stoppages||[]).slice().sort(function(a,b){ return b.from - a.from; });
+  if(!stops.length) sb.innerHTML = '<p class="muted small">None.</p>';
+  stops.forEach(function(s){
+    var row = el('div','kv');
+    var dur = ((s.to || nowMs()) - s.from)/3600000;
+    row.innerHTML = '<span class="k">'+fmtAbs(s.from)+' → '+(s.to ? fmtAbs(s.to) : '<strong>now</strong>')+
+      (s.reason ? ' · '+esc(s.reason) : '')+'</span><span class="v">'+fmtDur(dur)+'</span>';
+    sb.appendChild(row);
+  });
+
+  renderHourly(rec);
+  $('#cgStop').textContent = stopped ? '▶ Resume' : '⏸ Stoppage';
+  $('#cgUpdate').disabled = closed;
+  $('#cgClose').textContent = closed ? 'Reopen operation' : 'Close operation';
+}
+function lastEventAt(rec){
+  var ups = (rec.data.updates||[]);
+  return ups.length ? ups[ups.length-1].at : rec.data.startedAt;
+}
+function renderHourly(rec){
+  var d = rec.data, tb = $('#cgHourly tbody'); tb.innerHTML = '';
+  var ups = (d.updates||[]).slice().sort(function(a,b){ return a.at - b.at; });
+  if(!ups.length){ tb.innerHTML = '<tr><td colspan="3" class="muted">Log a figure to build the hourly table.</td></tr>'; return; }
+  var end = d.status === 'closed' ? ups[ups.length-1].at : nowMs();
+  var first = Math.max(d.startedAt, end - 48*3600000);
+  var pts = [first];
+  var h = new Date(first); h.setMinutes(0,0,0);
+  var t = h.getTime();
+  while(t <= first) t += 3600000;
+  for(; t < end; t += 3600000) pts.push(t);
+  if(pts[pts.length-1] < end - 30000) pts.push(end);
+  var rows = [], prev = null;
+  pts.forEach(function(pt){
+    var total = 0;
+    (d.grades||[]).forEach(function(g){ total += qtyAt(rec, g, pt); });
+    var delta = prev == null ? NaN : total - prev.q;
+    var hrs = prev == null ? NaN : activeHours(prev.t, pt, d.stoppages);
+    rows.push({t:pt, q:total, r: (hrs > 0 ? delta/hrs : NaN),
+               tag: pt === first ? 'start' : (pt === end && d.status !== 'closed' ? 'now' : '')});
+    prev = {t:pt, q:total};
+  });
+  rows.slice().reverse().forEach(function(r){
+    var tr = el('tr');
+    tr.innerHTML = '<td>'+fmtDate(r.t)+' '+fmtTime(r.t)+(r.tag ? ' <span class="muted tiny">'+r.tag+'</span>' : '')+'</td>'+
+      '<td class="num">'+fmtNum(Math.round(r.q*100)/100)+'</td>'+
+      '<td class="num">'+(isFinite(r.r) ? fmtNum(Math.round(r.r*10)/10) : '—')+'</td>';
+    tb.appendChild(tr);
+  });
+}
+/* ---- actions ---- */
+function cargoUpdateSheet(){
+  var rec = getRec(CG.openId); if(!rec) return;
+  var d = rec.data;
+  if(!(d.grades||[]).length){ toast('Add a grade first.'); return; }
+  var html =
+    '<div class="field"><span class="lbl">Grade</span><select id="uGrade">'+
+      d.grades.map(function(g){ return '<option value="'+esc(g.id)+'">'+esc(g.name)+' ('+esc(g.unit)+')</option>'; }).join('')+
+    '</select></div>'+
+    '<div class="field"><label for="uQty">Onboard quantity</label><input type="number" inputmode="decimal" id="uQty" placeholder="Total so far, not the increment"></div>'+
+    '<div class="field"><label for="uAt">As of</label><input type="datetime-local" id="uAt" value="'+esc(localInputValue(nowMs()))+'"></div>'+
+    '<div class="field"><label for="uPress">Manifold pressure (bar, optional)</label><input type="number" inputmode="decimal" id="uPress"></div>'+
+    '<div class="field"><label for="uNote">Note (optional)</label><input type="text" id="uNote"></div>'+
+    '<div class="row"><button class="btn primary grow" id="uSave">✓ Update</button></div>';
+  openSheet('Update figure', html, function(b){
+    b.querySelector('#uSave').addEventListener('click', function(){
+      var q = num(b.querySelector('#uQty').value);
+      if(!isFinite(q)){ toast('Enter the onboard quantity.'); return; }
+      var at = parseLocalInput(b.querySelector('#uAt').value) || nowMs();
+      var u = {id:uid(), at:at, gradeId:b.querySelector('#uGrade').value, qty:q,
+               pressure:b.querySelector('#uPress').value.trim(), note:b.querySelector('#uNote').value.trim(),
+               enteredAt: nowMs()};
+      var ups = (rec.data.updates||[]).concat([u]);
+      updateRecord(rec, {updates: ups}, 'figure logged').then(function(){
+        goBack(); cargoRender(); renderCargoList(); toast('Figure logged.');
+      });
+    });
+  });
+}
+function cargoStopSheet(){
+  var rec = getRec(CG.openId); if(!rec) return;
+  var open = (rec.data.stoppages||[]).filter(function(s){ return !s.to; })[0];
+  if(open){
+    var html2 = '<div class="field"><label for="sTo">Resumed at</label><input type="datetime-local" id="sTo" value="'+esc(localInputValue(nowMs()))+'"></div>'+
+      '<p class="small muted">Stopped since '+esc(fmtAbs(open.from))+(open.reason?' · '+esc(open.reason):'')+'.</p>'+
+      '<div class="row"><button class="btn primary grow" id="sResume">▶ Resume operation</button></div>';
+    openSheet('Resume', html2, function(b){
+      b.querySelector('#sResume').addEventListener('click', function(){
+        var to = parseLocalInput(b.querySelector('#sTo').value) || nowMs();
+        var stops = (rec.data.stoppages||[]).map(function(s){
+          return s.id === open.id ? Object.assign({}, s, {to: to}) : s;
+        });
+        updateRecord(rec, {stoppages: stops}, 'resumed').then(function(){
+          goBack(); cargoRender(); renderCargoList(); toast('Resumed.');
+        });
+      });
+    });
+    return;
+  }
+  var html = '<div class="field"><label for="sFrom">Stopped from</label><input type="datetime-local" id="sFrom" value="'+esc(localInputValue(nowMs()))+'"></div>'+
+    '<div class="field"><label for="sWhy">Reason (optional)</label><input type="text" id="sWhy" placeholder="Shore stop, tank change, rain…"></div>'+
+    '<p class="small muted">Stopped time is excluded from every rate and every completion time.</p>'+
+    '<div class="row"><button class="btn primary grow" id="sGo">⏸ Confirm stoppage</button></div>';
+  openSheet('Stoppage', html, function(b){
+    b.querySelector('#sGo').addEventListener('click', function(){
+      var from = parseLocalInput(b.querySelector('#sFrom').value) || nowMs();
+      var stops = (rec.data.stoppages||[]).concat([{id:uid(), from:from, to:null, reason:b.querySelector('#sWhy').value.trim()}]);
+      updateRecord(rec, {stoppages: stops}, 'stoppage started').then(function(){
+        goBack(); cargoRender(); renderCargoList(); toast('Stoppage recorded.');
+      });
+    });
+  });
+}
+function cargoLogSheet(){
+  var rec = getRec(CG.openId); if(!rec) return;
+  dbGetAll('log').then(function(logs){
+    var mine = (logs||[]).filter(function(e){ return e.recordId === rec.id; })
+      .sort(function(a,b){ return b.at - a.at; });
+    var html = mine.length ? mine.map(function(e){
+      return '<div class="kv"><span class="k">'+fmtAbs(e.at)+' · '+esc(e.action)+
+        (e.detail && e.detail.why ? ' · '+esc(e.detail.why) : '')+'</span><span class="v mono tiny">'+esc(e.deviceId)+'</span></div>';
+    }).join('') : '<p class="muted small">Nothing logged yet.</p>';
+    openSheet('Operation log', html);
+  });
+}
+function cargoTick(){
+  if(S.screen === 'scr-cargoop' && CG.openId){
+    var rec = getRec(CG.openId);
+    if(rec && rec.data.status !== 'closed') cargoRender();
+  }
+}
+setInterval(cargoTick, 15000);
+</script>
+<script>
+"use strict";
+/* ============================================================
+   HISTORY
+   ============================================================ */
+var H = {filter:'all', q:'', select:false, picked:{}};
+
+function renderHistory(){
+  var box = $('#histList');
+  var all = liveRecords();
+  var counts = {};
+  all.forEach(function(r){ counts[r.type] = (counts[r.type]||0)+1; });
+  var fb = $('#histFilters'); fb.innerHTML = '';
+  var chips = [['all','All ('+all.length+')']].concat(Object.keys(REG).filter(function(t){ return counts[t]; })
+    .map(function(t){ return [t, REG[t].label+' ('+counts[t]+')']; }));
+  chips.forEach(function(c){
+    var b = el('button','chip', c[1]);
+    b.setAttribute('aria-pressed', String(H.filter === c[0]));
+    b.style.whiteSpace = 'nowrap';
+    b.addEventListener('click', function(){ H.filter = c[0]; renderHistory(); });
+    fb.appendChild(b);
+  });
+  var q = H.q.toLowerCase().trim();
+  var rows = all.filter(function(r){
+    if(H.filter !== 'all' && r.type !== H.filter) return false;
+    if(!q) return true;
+    var hay = (summaryOf(r)+' '+resultOf(r)+' '+(r.data.note||'')+' '+(r.data.plainWords||'')+' '+typeLabel(r.type)).toLowerCase();
+    return hay.indexOf(q) >= 0;
+  });
+  box.innerHTML = '';
+  if(!rows.length){
+    box.innerHTML = '<div class="empty"><div class="big">🕘</div><p>Nothing here yet.</p>'+
+      '<p class="small">Every calculation you make is saved automatically, with the date and time it was made.</p></div>';
+    updateTally(); return;
+  }
+  var lastDay = null;
+  rows.forEach(function(r){
+    var ts = r.data.eventAt || r.createdAt;
+    var dk = dayKey(ts);
+    if(dk !== lastDay){
+      lastDay = dk;
+      box.appendChild(el('div','daysep', dayLabel(ts)));
+    }
+    var row = el('div','list-row');
+    var tick = H.select
+      ? '<div class="tick"><input type="checkbox" data-pick="'+esc(r.id)+'" '+(H.picked[r.id]?'checked':'')+' aria-label="Select row" style="width:22px;height:22px;min-height:22px"></div>'
+      : '<div class="tick" aria-hidden="true">'+ (REG[r.type] ? REG[r.type].icon : '•') +'</div>';
+    row.innerHTML = tick +
+      '<div class="body">'+
+        '<div class="expr">'+esc(summaryOf(r))+'</div>'+
+        '<div class="res">'+esc(resultOf(r))+'</div>'+
+        '<div class="meta">'+esc(typeLabel(r.type))+' · '+esc(fmtRel(ts))+
+          (r.rev > 1 ? ' · edited' : '')+
+          (r.data.note ? ' · '+esc(r.data.note) : '')+'</div>'+
+      '</div>';
+    row.addEventListener('click', function(e){
+      if(H.select){
+        if(e.target && e.target.dataset && e.target.dataset.pick) return;
+        if(H.picked[r.id]) delete H.picked[r.id]; else H.picked[r.id] = 1;
+        renderHistory(); return;
+      }
+      recordSheet(r);
+    });
+    box.appendChild(row);
+  });
+  $$('[data-pick]', box).forEach(function(cb){
+    cb.addEventListener('change', function(){
+      if(cb.checked) H.picked[cb.dataset.pick] = 1; else delete H.picked[cb.dataset.pick];
+      updateTally();
+    });
+  });
+  updateTally();
+}
+function updateTally(){
+  var bar = $('#tallyBar');
+  bar.classList.toggle('hidden', !H.select);
+  if(!H.select) return;
+  var ids = Object.keys(H.picked);
+  var vals = [], units = {};
+  ids.forEach(function(id){
+    var r = getRec(id); if(!r) return;
+    var n = resultNumberOf(r);
+    if(isFinite(n)){ vals.push(n); var u = resultUnitOf(r) || ''; units[u] = (units[u]||0)+1; }
+  });
+  var sum = vals.reduce(function(a,b){ return a+b; }, 0);
+  var uKeys = Object.keys(units);
+  var unitTxt = uKeys.length === 1 ? ' '+uKeys[0] : (uKeys.length > 1 ? ' (mixed units)' : '');
+  $('#tallySum').innerHTML = ids.length+' selected · total <span>'+esc(fmtNum(sum)+unitTxt)+'</span>'+
+    (vals.length !== ids.length ? ' <span class="muted tiny">('+(ids.length-vals.length)+' without a number)</span>' : '');
+}
+function recordSheet(r){
+  var rows = detailRows(r);
+  var html = '<div class="scrollx"><table class="data"><tbody>'+
+    rows.map(function(kv){ return '<tr><th>'+esc(kv[0])+'</th><td>'+esc(kv[1])+'</td></tr>'; }).join('')+
+    '<tr><th>Created</th><td>'+fmtAbs(r.createdAt)+'</td></tr>'+
+    (r.data.eventAt && Math.abs(r.data.eventAt - r.createdAt) > 60000 ? '<tr><th>Happened</th><td>'+fmtAbs(r.data.eventAt)+'</td></tr>' : '')+
+    (r.rev > 1 ? '<tr><th>Last edited</th><td>'+fmtAbs(r.updatedAt)+' (rev '+r.rev+')</td></tr>' : '')+
+    '<tr><th>Device</th><td class="mono tiny">'+esc(r.deviceId)+'</td></tr>'+
+    '</tbody></table></div>'+
+    '<div class="field mt16"><label for="rsNote">Note</label><input type="text" id="rsNote" value="'+esc(r.data.note||'')+'"></div>'+
+    '<div class="row">'+
+      (r.type === 'calc' ? '<button class="btn" id="rsRestore">Restore expression</button>' : '')+
+      (isFinite(resultNumberOf(r)) ? '<button class="btn" id="rsUse">Use result</button>' : '')+
+      '<button class="btn" id="rsPrint">🖨 Print</button>'+
+      '<button class="btn" id="rsAudit">Audit</button>'+
+      '<button class="btn danger" id="rsDel">Delete</button>'+
+    '</div>';
+  openSheet(typeLabel(r.type), html, function(b){
+    var noteInput = b.querySelector('#rsNote');
+    noteInput.addEventListener('change', function(){
+      updateRecord(r, {note: noteInput.value.trim()}, 'note edited').then(function(){ renderHistory(); });
+    });
+    var u = b.querySelector('#rsUse');
+    if(u) u.addEventListener('click', function(){ goBack(); appendResultToCalc(resultNumberOf(r)); });
+    var rs = b.querySelector('#rsRestore');
+    if(rs) rs.addEventListener('click', function(){ goBack(); pushToCalc(r.data.expression || ''); });
+    b.querySelector('#rsPrint').addEventListener('click', function(){ printSingle(r); });
+    b.querySelector('#rsAudit').addEventListener('click', function(){ auditSheet(r); });
+    b.querySelector('#rsDel').addEventListener('click', function(){
+      goBack();
+      setTimeout(function(){
+        confirmSheet('Delete this record?',
+          'It moves to the deleted list and stays in the audit trail. You can restore it from Settings.',
+          'Delete', function(){
+            deleteRecord(r, 'deleted by user').then(function(){ renderAll(); toast('Deleted.'); });
+          }, true);
+      }, 60);
+    });
+  });
+}
+function appendResultToCalc(v){
+  nav('scr-calc');
+  if(C.justEquals){ C.expr = ''; C.justEquals = false; }
+  C.expr += fmtRaw(v);
+  renderCalc();
+}
+function auditSheet(r){
+  dbGetAll('log').then(function(logs){
+    var mine = (logs||[]).filter(function(e){ return e.recordId === r.id; }).sort(function(a,b){ return b.at - a.at; });
+    var html = mine.length ? '<div class="scrollx"><table class="data"><thead><tr><th>When</th><th>What</th><th>Detail</th></tr></thead><tbody>'+
+      mine.map(function(e){
+        var det = '';
+        if(e.detail && e.detail.changes){
+          det = e.detail.changes.map(function(c){ return esc(c.field)+': '+esc(c.from)+' → '+esc(c.to); }).join('<br>');
+        } else if(e.detail && e.detail.why){ det = esc(e.detail.why); }
+        else if(e.detail && e.detail.summary){ det = esc(e.detail.summary); }
+        return '<tr><td>'+fmtAbs(e.at)+'</td><td>'+esc(e.action)+'</td><td>'+det+'</td></tr>';
+      }).join('')+'</tbody></table></div>' : '<p class="muted small">No entries.</p>';
+    openSheet('Audit trail', html);
+  });
+}
+function renderHistoryIfOpen(){ if(S.screen === 'scr-history') renderHistory(); }
+function renderPrev(type, sel){
+  var box = $(sel || '[data-prev="'+type+'"]');
+  if(!box) return;
+  var rows = liveRecords(type).slice(0, 5);
+  if(!rows.length){ box.innerHTML = '<p class="muted small">Nothing saved yet.</p>'; return; }
+  box.innerHTML = '';
+  rows.forEach(function(r){
+    var d = el('div','list-row');
+    d.innerHTML = '<div class="body"><div class="expr">'+esc(summaryOf(r))+'</div>'+
+      '<div class="res">'+esc(resultOf(r))+'</div>'+
+      '<div class="meta">'+esc(fmtRel(r.data.eventAt || r.createdAt))+(r.data.note?' · '+esc(r.data.note):'')+'</div></div>';
+    d.addEventListener('click', function(){ recordSheet(r); });
+    box.appendChild(d);
+  });
+}
+
+/* ============================================================
+   REPORTS + PRINTING
+   ============================================================ */
+var RP = {kind:'log', from:null, to:null, types:{}, sign:false, land:false, opId:null};
+
+function reportHeader(title, subtitle, rangeText){
+  var ship = metaGet('ship','') || '';
+  var by = metaGet('preparedBy','') || '';
+  return '<div class="pr-head">'+
+    '<div class="pr-h1">'+esc(title)+'</div>'+
+    (ship ? '<div><strong>'+esc(ship)+'</strong></div>' : '')+
+    (subtitle ? '<div>'+esc(subtitle)+'</div>' : '')+
+    '<div class="pr-meta">'+
+      (rangeText ? '<span>Period: '+esc(rangeText)+'</span>' : '')+
+      '<span>Generated: '+esc(fmtAbs(nowMs()))+'</span>'+
+      (by ? '<span>Prepared by: '+esc(by)+'</span>' : '')+
+    '</div></div>';
+}
+function reportFooter(lines){
+  return '<div class="pr-foot">'+lines.map(function(l){ return '<div>'+esc(l)+'</div>'; }).join('')+
+    '<div>'+esc(APP_NAME+' '+VERSION+' · device '+metaGet('deviceId',''))+'</div></div>';
+}
+function signBlock(){
+  if(!RP.sign) return '';
+  return '<div class="pr-sign"><div>Prepared by — name, rank, signature</div>'+
+    '<div>Checked by — name, rank, signature</div><div>Date</div></div>';
+}
+function rangeMs(){
+  var f = RP.from ? new Date(RP.from+'T00:00:00').getTime() : 0;
+  var t = RP.to ? new Date(RP.to+'T23:59:59.999').getTime() : Infinity;
+  return [f, t];
+}
+function rangeText(){
+  if(!RP.from && !RP.to) return 'All records';
+  return (RP.from ? RP.from : 'start') + ' to ' + (RP.to ? RP.to : 'today');
+}
+function reportRows(){
+  var r = rangeMs();
+  return liveRecords().filter(function(rec){
+    if(rec.type === 'cargo') return false;
+    var ts = rec.data.eventAt || rec.createdAt;
+    if(ts < r[0] || ts > r[1]) return false;
+    if(Object.keys(RP.types).length && !RP.types[rec.type]) return false;
+    return true;
+  }).sort(function(a,b){ return (a.data.eventAt||a.createdAt) - (b.data.eventAt||b.createdAt); });
+}
+function buildLogReport(){
+  var rows = reportRows();
+  var byType = {};
+  rows.forEach(function(r){ byType[r.type] = (byType[r.type]||0)+1; });
+  var body = '<table class="pr"><thead><tr><th>Date</th><th>Time</th><th>Tool</th><th>Calculation</th>'+
+    '<th class="num">Result</th><th>Note</th></tr></thead><tbody>' +
+    (rows.length ? rows.map(function(r){
+      var ts = r.data.eventAt || r.createdAt;
+      return '<tr><td>'+fmtDate(ts)+'</td><td>'+fmtTime(ts)+'</td><td>'+esc(typeLabel(r.type))+'</td>'+
+        '<td>'+esc(r.data.plainWords || summaryOf(r))+'</td>'+
+        '<td class="num">'+esc(resultOf(r))+'</td><td>'+esc(r.data.note||'')+'</td></tr>';
+    }).join('') : '<tr><td colspan="6">No records in this period.</td></tr>') +
+    '</tbody></table>';
+  var counts = Object.keys(byType).map(function(t){ return typeLabel(t)+': '+byType[t]; }).join(' · ');
+  return reportHeader('Calculation log', '', rangeText()) + body +
+    reportFooter([rows.length+' record'+(rows.length===1?'':'s')+(counts?' — '+counts:'')]) + signBlock();
+}
+function buildSelectionReport(ids){
+  var rows = ids.map(getRec).filter(Boolean)
+    .sort(function(a,b){ return (a.data.eventAt||a.createdAt) - (b.data.eventAt||b.createdAt); });
+  var vals = rows.map(resultNumberOf).filter(isFinite);
+  var sum = vals.reduce(function(a,b){ return a+b; }, 0);
+  var units = {}; rows.forEach(function(r){ var u = resultUnitOf(r)||''; units[u]=1; });
+  var uk = Object.keys(units);
+  var body = '<table class="pr"><thead><tr><th>Date</th><th>Time</th><th>Tool</th><th>Calculation</th>'+
+    '<th class="num">Result</th><th>Note</th></tr></thead><tbody>'+
+    rows.map(function(r){
+      var ts = r.data.eventAt || r.createdAt;
+      return '<tr><td>'+fmtDate(ts)+'</td><td>'+fmtTime(ts)+'</td><td>'+esc(typeLabel(r.type))+'</td>'+
+        '<td>'+esc(r.data.plainWords || summaryOf(r))+'</td><td class="num">'+esc(resultOf(r))+'</td>'+
+        '<td>'+esc(r.data.note||'')+'</td></tr>';
+    }).join('')+'</tbody>'+
+    '<tfoot><tr><th colspan="4">Total of '+vals.length+' figure'+(vals.length===1?'':'s')+
+      (uk.length===1&&uk[0]?' ('+esc(uk[0])+')':'')+'</th><th class="num">'+esc(fmtRaw(sum))+'</th><th></th></tr></tfoot></table>';
+  return reportHeader('Selected calculations', '', rangeText()) + body +
+    reportFooter([rows.length+' record'+(rows.length===1?'':'s')+' selected by hand']) + signBlock();
+}
+function buildAuditReport(){
+  return dbGetAll('log').then(function(logs){
+    var r = rangeMs();
+    var rows = (logs||[]).filter(function(e){ return e.at >= r[0] && e.at <= r[1]; })
+      .sort(function(a,b){ return a.at - b.at; });
+    var body = '<table class="pr"><thead><tr><th>When</th><th>Action</th><th>Record</th><th>Change</th><th>Device</th></tr></thead><tbody>'+
+      (rows.length ? rows.map(function(e){
+        var det = '';
+        if(e.detail && e.detail.changes){
+          det = e.detail.changes.map(function(c){
+            return esc(c.field)+': '+esc(String(c.from).slice(0,60))+' → '+esc(String(c.to).slice(0,60));
+          }).join('<br>');
+        } else if(e.detail && e.detail.why) det = esc(e.detail.why);
+        else if(e.detail && e.detail.summary) det = esc(String(e.detail.summary).slice(0,120));
+        else if(e.detail) det = esc(JSON.stringify(e.detail).slice(0,140));
+        var rec = e.recordId ? getRec(e.recordId) : null;
+        return '<tr><td>'+fmtDate(e.at)+' '+fmtTime(e.at)+'</td><td>'+esc(e.action)+'</td>'+
+          '<td>'+esc(rec ? typeLabel(rec.type)+' — '+summaryOf(rec) : (e.recType ? typeLabel(e.recType) : '—'))+'</td>'+
+          '<td>'+det+'</td><td>'+esc(e.deviceId||'')+'</td></tr>';
+      }).join('') : '<tr><td colspan="5">No audit entries in this period.</td></tr>')+'</tbody></table>';
+    return reportHeader('Audit trail', 'Every entry, edit and deletion, in the order it happened', rangeText()) +
+      body + reportFooter([rows.length+' log entr'+(rows.length===1?'y':'ies')]) + signBlock();
+  });
+}
+function buildCargoReport(id){
+  var rec = getRec(id);
+  if(!rec) return '<p>Operation not found.</p>';
+  var d = rec.data;
+  var gradeRows = (d.grades||[]).map(function(g){
+    var st = gradeState(rec, g);
+    return '<tr><td>'+esc(g.name)+'</td><td class="num">'+fmtNum(g.total)+' '+esc(g.unit)+'</td>'+
+      '<td class="num">'+fmtNum(Math.round(st.projected*100)/100)+'</td>'+
+      '<td class="num">'+fmtNum(Math.round(st.remaining*100)/100)+'</td>'+
+      '<td class="num">'+fmtNum(Math.round(st.rate*10)/10)+'</td>'+
+      '<td>'+(isStopped(rec) ? 'On hold' : (st.etcAt ? fmtAbs(st.etcAt) : 'Complete'))+'</td></tr>';
+  }).join('');
+  var ups = (d.updates||[]).slice().sort(function(a,b){ return a.at - b.at; });
+  var upRows = ups.map(function(u){
+    var g = (d.grades||[]).filter(function(x){ return x.id === u.gradeId; })[0] || {name:'—', unit:''};
+    var prior = gradeUpdates(rec, u.gradeId).filter(function(x){ return x.at < u.at; });
+    var prev = prior.length ? prior[prior.length-1] : null;
+    var delta = prev ? u.qty - prev.qty : u.qty;
+    var hrs = prev ? activeHours(prev.at, u.at, d.stoppages) : activeHours(d.startedAt, u.at, d.stoppages);
+    var rate = hrs > 0 ? delta/hrs : NaN;
+    return '<tr><td>'+fmtDate(u.at)+' '+fmtTime(u.at)+'</td><td>'+esc(g.name)+'</td>'+
+      '<td class="num">'+fmtNum(u.qty)+'</td><td class="num">'+fmtNum(Math.round(delta*100)/100)+'</td>'+
+      '<td class="num">'+(isFinite(rate)?fmtNum(Math.round(rate*10)/10):'—')+'</td>'+
+      '<td>'+esc(u.pressure||'')+'</td><td>'+esc(u.note||'')+'</td></tr>';
+  }).join('') || '<tr><td colspan="7">No figures logged.</td></tr>';
+  var stopRows = (d.stoppages||[]).slice().sort(function(a,b){ return a.from-b.from; }).map(function(s){
+    return '<tr><td>'+fmtAbs(s.from)+'</td><td>'+(s.to?fmtAbs(s.to):'ongoing')+'</td>'+
+      '<td class="num">'+fmtDur(((s.to||nowMs())-s.from)/3600000)+'</td><td>'+esc(s.reason||'')+'</td></tr>';
+  }).join('') || '<tr><td colspan="4">None.</td></tr>';
+  var end = d.status === 'closed' ? lastEventAt(rec) : nowMs();
+  return reportHeader('Cargo operation sheet',
+      (d.opName||'') + (d.port ? ' — '+d.port : '') + ' · ' + (d.operation==='disch'?'Discharging':'Loading'),
+      fmtAbs(d.startedAt)+' to '+fmtAbs(end)) +
+    '<div class="pr-sec"><h3>Summary</h3><table class="pr"><tbody>'+
+      '<tr><th>Status</th><td>'+(d.status==='closed'?'Closed':(isStopped(rec)?'Stopped':'Running'))+'</td>'+
+      '<th>Started</th><td>'+fmtAbs(d.startedAt)+'</td></tr>'+
+      '<tr><th>Active time</th><td>'+fmtDur(activeHours(d.startedAt, end, d.stoppages))+'</td>'+
+      '<th>Stopped time</th><td>'+fmtDur(stoppageOverlap(d.startedAt, end, d.stoppages)/3600000)+'</td></tr>'+
+      '<tr><th>Progress</th><td colspan="3">'+esc(cargoTotalsText(rec))+'</td></tr>'+
+      (d.note ? '<tr><th>Note</th><td colspan="3">'+esc(d.note)+'</td></tr>' : '')+
+    '</tbody></table></div>'+
+    '<div class="pr-sec"><h3>Grades</h3><table class="pr"><thead><tr><th>Grade</th><th class="num">Nominated</th>'+
+      '<th class="num">Onboard</th><th class="num">Remaining</th><th class="num">Rate/hr</th><th>ETC</th></tr></thead>'+
+      '<tbody>'+(gradeRows||'<tr><td colspan="6">No grades.</td></tr>')+'</tbody></table></div>'+
+    '<div class="pr-sec"><h3>Figures log</h3><table class="pr"><thead><tr><th>Time</th><th>Grade</th>'+
+      '<th class="num">Onboard</th><th class="num">Since last</th><th class="num">Rate/hr</th><th>Press.</th><th>Note</th></tr></thead>'+
+      '<tbody>'+upRows+'</tbody></table></div>'+
+    '<div class="pr-sec"><h3>Stoppages</h3><table class="pr"><thead><tr><th>From</th><th>To</th>'+
+      '<th class="num">Duration</th><th>Reason</th></tr></thead><tbody>'+stopRows+'</tbody></table></div>'+
+    reportFooter(['Rates are measured over active time; stopped periods are excluded.']) + signBlock();
+}
+function buildSingleReport(r){
+  var rows = detailRows(r);
+  var ts = r.data.eventAt || r.createdAt;
+  return reportHeader(typeLabel(r.type), r.data.plainWords || summaryOf(r), fmtAbs(ts)) +
+    '<table class="pr"><tbody>'+rows.map(function(kv){
+      return '<tr><th style="width:38%">'+esc(kv[0])+'</th><td>'+esc(kv[1])+'</td></tr>';
+    }).join('')+
+    '<tr><th>Entered</th><td>'+fmtAbs(r.createdAt)+'</td></tr>'+
+    (r.rev>1?'<tr><th>Last edited</th><td>'+fmtAbs(r.updatedAt)+' (revision '+r.rev+')</td></tr>':'')+
+    '<tr><th>Device</th><td>'+esc(r.deviceId)+'</td></tr></tbody></table>'+
+    reportFooter(['Single calculation sheet.']) + signBlock();
+}
+function doPrint(html){
+  $('#printArea').innerHTML = html;
+  applyPaper(metaGet('paper','A4'));
+  setTimeout(function(){ window.print(); }, 80);
+}
+function printSingle(r){ doPrint(buildSingleReport(r)); }
+
+function renderReportScreen(){
+  var t = $('#rpTypes'); t.innerHTML = '';
+  Object.keys(REG).forEach(function(k){
+    if(k === 'cargo') return;
+    var b = el('button','chip', REG[k].label);
+    b.setAttribute('aria-pressed', String(!!RP.types[k]));
+    b.addEventListener('click', function(){
+      if(RP.types[k]) delete RP.types[k]; else RP.types[k] = 1;
+      renderReportScreen();
+    });
+    t.appendChild(b);
+  });
+  var sel = $('#rpCargoOp');
+  var ops = liveRecords('cargo');
+  sel.innerHTML = ops.map(function(o){ return '<option value="'+esc(o.id)+'">'+esc(o.data.opName||'Operation')+' — '+esc(fmtDate(o.data.startedAt))+'</option>'; }).join('');
+  if(RP.opId) sel.value = RP.opId;
+  $('#rpCargoPick').classList.toggle('hidden', RP.kind !== 'cargo');
+  $('#rpTypesWrap').classList.toggle('hidden', RP.kind !== 'log');
+  $('#rpSign').setAttribute('aria-pressed', String(RP.sign));
+  $('#rpLand').setAttribute('aria-pressed', String(RP.land));
+  reportHtml().then(function(html){
+    $('#rpPreview').innerHTML = '<div class="prprev">'+html+'</div>';
+  });
+}
+function reportHtml(){
+  if(RP.kind === 'audit') return buildAuditReport();
+  if(RP.kind === 'cargo'){
+    var id = $('#rpCargoOp').value || (liveRecords('cargo')[0]||{}).id;
+    RP.opId = id;
+    return Promise.resolve(id ? buildCargoReport(id) : '<p>No cargo operation saved yet.</p>');
+  }
+  return Promise.resolve(buildLogReport());
+}
+
+/* ============================================================
+   BULK IMPORT
+   ============================================================ */
+var IMP = {rows:[], headers:[], mapping:null, parsed:false};
+var IMPORT_COLS = ['id','Date','Time','Type','Expression','Result','Note'];
+
+function parseCsv(text){
+  text = text.replace(/^\ufeff/, '');
+  var rows = [], row = [], cur = '', q = false, i = 0;
+  while(i < text.length){
+    var c = text.charAt(i);
+    if(q){
+      if(c === '"'){
+        if(text.charAt(i+1) === '"'){ cur += '"'; i += 2; continue; }
+        q = false; i++; continue;
+      }
+      cur += c; i++; continue;
+    }
+    if(c === '"'){ q = true; i++; continue; }
+    if(c === ','){ row.push(cur); cur = ''; i++; continue; }
+    if(c === '\r'){ i++; continue; }
+    if(c === '\n'){ row.push(cur); rows.push(row); row = []; cur = ''; i++; continue; }
+    cur += c; i++;
+  }
+  if(cur.length || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(c){ return String(c).trim() !== ''; }); });
+}
+function parseTsv(text){
+  return text.replace(/^\ufeff/,'').split(/\r?\n/).filter(function(l){ return l.trim() !== ''; })
+    .map(function(l){ return l.split('\t'); });
+}
+function normHeader(h){ return String(h||'').toLowerCase().replace(/[\s_]+/g,'').replace(/\(.*\)/,''); }
+function autoMap(headers){
+  var map = {};
+  headers.forEach(function(h, i){
+    var n = normHeader(h);
+    IMPORT_COLS.forEach(function(c){
+      if(normHeader(c) === n) map[c] = i;
+    });
+    if(n === 'datetime') map.Date = i;
+    if(n === 'value' || n === 'answer') map.Result = i;
+    if(n === 'calculation' || n === 'formula') map.Expression = i;
+    if(n === 'comment' || n === 'remarks') map.Note = i;
+  });
+  return map;
+}
+function excelSerialToDate(n){
+  var ms = Math.round((n - 25569) * 86400000);
+  return new Date(ms);
+}
+function validateRows(grid, mapping){
+  var out = [];
+  var body = grid.slice(1);
+  body.forEach(function(cells, idx){
+    var get = function(c){ var i = mapping[c]; return i == null ? '' : String(cells[i] == null ? '' : cells[i]).trim(); };
+    var r = {n: idx+2, id:get('id'), date:get('Date'), time:get('Time'), type:get('Type') || 'calc',
+             expr:get('Expression'), result:get('Result'), note:get('Note'), status:'ok', msgs:[]};
+    if(/^EXAMPLE/i.test(r.id) || /^EXAMPLE/i.test(r.expr) || /^EXAMPLE/i.test(r.note)){ r.status = 'skip'; r.msgs.push('Example row — skipped'); out.push(r); return; }
+    /* date */
+    var ts = NaN;
+    if(!r.date){ r.status = 'error'; r.msgs.push('Date is required (YYYY-MM-DD)'); }
+    else if(/^\d{4}-\d{2}-\d{2}$/.test(r.date)){
+      var tm = /^\d{1,2}:\d{2}$/.test(r.time) ? r.time : '00:00';
+      ts = new Date(r.date+'T'+(tm.length===4?'0'+tm:tm)+':00').getTime();
+      if(!isFinite(ts)){ r.status='error'; r.msgs.push('Date could not be read'); }
+    } else if(/^\d+(\.\d+)?$/.test(r.date)){
+      var d2 = excelSerialToDate(parseFloat(r.date));
+      ts = d2.getTime();
+      if(isFinite(ts)) r.msgs.push('Read as Excel date serial → '+fmtDate(ts));
+      else { r.status='error'; r.msgs.push('Date could not be read'); }
+      if(r.status !== 'error' && r.status !== 'skip') r.status = 'warn';
+    } else {
+      r.status = 'error';
+      r.msgs.push('Ambiguous date — use YYYY-MM-DD');
+    }
+    r.ts = ts;
+    /* type */
+    if(!REG[r.type]){ r.type = 'calc'; r.msgs.push('Unknown tool — imported as a calculator entry'); if(r.status==='ok') r.status='warn'; }
+    /* expression */
+    if(r.type === 'calc'){
+      if(!r.expr){ r.status = 'error'; r.msgs.push('Expression is required'); }
+      else {
+        try{
+          var v = evaluate(r.expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/π/g,'pi'));
+          r.value = v;
+          if(r.result){
+            var stated = num(r.result);
+            if(isFinite(stated) && Math.abs(stated - v) > Math.max(1e-9, Math.abs(v)*1e-9)){
+              if(r.status === 'ok') r.status = 'warn';
+              r.msgs.push('Sheet says '+r.result+', the expression works out to '+fmtRaw(v));
+            }
+          }
+        }catch(e){
+          r.status = 'error'; r.msgs.push('Cannot work out that expression: '+e.message);
+        }
+      }
+    } else {
+      r.value = num(r.result);
+      if(!r.expr && !r.result){ r.status = 'error'; r.msgs.push('Give an expression or a result'); }
+    }
+    /* id */
+    if(r.id){
+      var ex = getRec(r.id);
+      r.mode = ex ? 'update' : 'insert';
+      if(ex && ex.type !== r.type) r.msgs.push('That id already belongs to a '+typeLabel(ex.type)+' record');
+    } else { r.mode = 'insert'; }
+    out.push(r);
+  });
+  /* natural-key duplicate warning for new rows */
+  var seen = {};
+  liveRecords().forEach(function(rec){
+    var k = dayKey(rec.data.eventAt||rec.createdAt)+'|'+(rec.data.expression||summaryOf(rec));
+    seen[k] = rec.id;
+  });
+  out.forEach(function(r){
+    if(r.mode === 'insert' && r.status !== 'error' && r.status !== 'skip' && isFinite(r.ts)){
+      var k = dayKey(r.ts)+'|'+r.expr;
+      if(seen[k]){ if(r.status === 'ok') r.status = 'warn'; r.msgs.push('Looks like a record you already have'); }
+    }
+  });
+  return out;
+}
+function renderImportPreview(){
+  var rows = IMP.rows;
+  var ok = rows.filter(function(r){ return r.status === 'ok'; }).length;
+  var warn = rows.filter(function(r){ return r.status === 'warn'; }).length;
+  var err = rows.filter(function(r){ return r.status === 'error'; }).length;
+  var ins = rows.filter(function(r){ return r.mode === 'insert' && r.status !== 'error' && r.status !== 'skip'; }).length;
+  var upd = rows.filter(function(r){ return r.mode === 'update' && r.status !== 'error' && r.status !== 'skip'; }).length;
+  $('#imCounts').textContent = ins+' new, '+upd+' updated, '+warn+' warning'+(warn===1?'':'s')+', '+err+' error'+(err===1?'':'s');
+  var th = $('#imTable thead'), tb = $('#imTable tbody');
+  th.innerHTML = '<tr><th>#</th><th>Status</th><th>Date</th><th>Tool</th><th>Expression</th><th class="num">Result</th><th>Note</th></tr>';
+  tb.innerHTML = '';
+  rows.forEach(function(r, i){
+    var tr = el('tr');
+    var badge = r.status === 'ok' ? '<span class="badge ok">OK</span>' :
+                r.status === 'warn' ? '<span class="badge warn">warning</span>' :
+                r.status === 'skip' ? '<span class="badge">example</span>' : '<span class="badge err">error</span>';
+    tr.innerHTML = '<td>'+r.n+'</td><td>'+badge+
+        (r.msgs.length ? '<br><span class="tiny muted">'+esc(r.msgs.join('; '))+'</span>' : '')+'</td>'+
+      '<td><input type="text" data-i="'+i+'" data-f="date" value="'+esc(r.date)+'" style="min-width:110px"></td>'+
+      '<td><input type="text" data-i="'+i+'" data-f="type" value="'+esc(r.type)+'" style="min-width:90px"></td>'+
+      '<td><input type="text" data-i="'+i+'" data-f="expr" value="'+esc(r.expr)+'" style="min-width:150px"></td>'+
+      '<td class="num"><input type="text" data-i="'+i+'" data-f="result" value="'+esc(r.result)+'" style="min-width:90px"></td>'+
+      '<td><input type="text" data-i="'+i+'" data-f="note" value="'+esc(r.note)+'" style="min-width:110px"></td>';
+    tb.appendChild(tr);
+  });
+  $$('#imTable input').forEach(function(inp){
+    inp.addEventListener('change', function(){
+      IMP.rows[+inp.dataset.i][inp.dataset.f] = inp.value;
+      revalidate();
+    });
+  });
+  $('#imPreviewWrap').classList.remove('hidden');
+  $('#imApply').disabled = (ins + upd) === 0;
+}
+function revalidate(){
+  var grid = [IMPORT_COLS.slice()];
+  IMP.rows.forEach(function(r){ grid.push([r.id, r.date, r.time, r.type, r.expr, r.result, r.note]); });
+  var map = {}; IMPORT_COLS.forEach(function(c, i){ map[c] = i; });
+  IMP.rows = validateRows(grid, map);
+  renderImportPreview();
+}
+function handleGrid(grid){
+  if(!grid.length){ toast('Nothing to read.'); return; }
+  IMP.grid = grid;
+  IMP.headers = grid[0].map(function(h){ return String(h).trim(); });
+  var map = autoMap(IMP.headers);
+  var missing = IMPORT_COLS.filter(function(c){ return map[c] == null; });
+  if(missing.length > 2){
+    showMapping(map);
+    return;
+  }
+  $('#imMapWrap').classList.add('hidden');
+  metaSet('importMapping', map);
+  IMP.rows = validateRows(grid, map);
+  renderImportPreview();
+}
+function showMapping(map){
+  var box = $('#imMap');
+  box.innerHTML = IMPORT_COLS.map(function(c){
+    return '<div class="row" style="margin-bottom:8px"><span class="grow">'+esc(c)+'</span>'+
+      '<select data-col="'+esc(c)+'"><option value="">— not in the sheet —</option>'+
+      IMP.headers.map(function(h, i){
+        return '<option value="'+i+'"'+(map[c]===i?' selected':'')+'>'+esc(h||('Column '+(i+1)))+'</option>';
+      }).join('')+'</select></div>';
+  }).join('');
+  $('#imMapWrap').classList.remove('hidden');
+  toast('Match the columns, then re-check.');
+}
+function applyImport(){
+  var batch = uid(), at = nowMs();
+  var created = [], prev = [], puts = [];
+  IMP.rows.forEach(function(r){
+    if(r.status === 'error' || r.status === 'skip') return;
+    var data;
+    if(r.type === 'calc'){
+      var src = r.expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/π/g,'pi');
+      data = {expression: src, expressionDisplay: displayExpr(src), resultRaw: r.value,
+              resultDisplay: fmtRaw(r.value), angleMode: S.angle,
+              plainWords: plainWords(src)+' equals '+fmtRaw(r.value), note: r.note,
+              eventAt: r.ts, importBatchId: batch};
+    } else {
+      data = {expression: r.expr, plainWords: r.expr, result: isFinite(r.value)?r.value:undefined,
+              resultDisplay: r.result, note: r.note, eventAt: r.ts, importBatchId: batch,
+              importedRaw: true};
+    }
+    if(r.mode === 'update' && r.id && getRec(r.id)){
+      var ex = getRec(r.id);
+      prev.push(JSON.parse(JSON.stringify(ex)));
+      var merged = JSON.parse(JSON.stringify(ex));
+      Object.keys(data).forEach(function(k){ if(data[k] !== undefined) merged.data[k] = data[k]; });
+      merged.updatedAt = at; merged.rev = (merged.rev||1)+1;
+      puts.push(merged);
+    } else {
+      var rec = newRecord(r.type, data);
+      if(r.id) rec.id = r.id;
+      rec.createdAt = at; rec.updatedAt = at;
+      created.push(rec.id);
+      puts.push(rec);
+    }
+  });
+  if(!puts.length){ toast('Nothing to import.'); return; }
+  takeSnapshot(true).then(function(){
+    return dbBulkPut('records', puts);
+  }).then(function(){
+    puts.forEach(function(p){ var i = indexOfRec(p.id); if(i>=0) S.records[i] = p; else S.records.push(p); });
+    return metaSet('lastImportBatch', {id:batch, at:at, created:created, prev:prev,
+      counts:{inserted:created.length, updated:prev.length}});
+  }).then(function(){
+    return logWrite('import-batch', null, {batch:batch, inserted:created.length, updated:prev.length});
+  }).then(function(){
+    markDirty(); renderAll();
+    toast(created.length+' new, '+prev.length+' updated.');
+    $('#imPreviewWrap').classList.add('hidden');
+    $('#imPaste').value = '';
+    IMP.rows = [];
+  });
+}
+function undoImport(){
+  var b = metaGet('lastImportBatch', null);
+  if(!b){ toast('No import to undo.'); return; }
+  confirmSheet('Undo that import?',
+    'It removes the '+b.created.length+' record'+(b.created.length===1?'':'s')+' the import created and puts the '+
+    b.prev.length+' it changed back the way they were.', 'Undo import', function(){
+      var ops = [];
+      b.created.forEach(function(id){
+        var r = getRec(id);
+        if(r){ r.deleted = true; r.updatedAt = nowMs(); r.rev = (r.rev||1)+1; ops.push(r); }
+      });
+      (b.prev||[]).forEach(function(p){ ops.push(p); });
+      dbBulkPut('records', ops).then(function(){
+        ops.forEach(function(p){ var i = indexOfRec(p.id); if(i>=0) S.records[i] = p; });
+        return logWrite('import-undo', null, {batch:b.id, removed:b.created.length, restored:(b.prev||[]).length});
+      }).then(function(){
+        return metaSet('lastImportBatch', null);
+      }).then(function(){ markDirty(); renderAll(); toast('Import undone.'); });
+    }, true);
+}
+function downloadTemplate(){
+  var head = IMPORT_COLS.join(',');
+  var ex1 = ['','2026-08-01','09:30','calc','1200*0.845','1014','EXAMPLE — delete this row'];
+  var ex2 = ['','2026-08-01','14:05','calc','(450+320)/2','385','EXAMPLE — delete this row'];
+  var csv = '\ufeff' + head + '\r\n' + [ex1, ex2].map(function(r){
+    return r.map(csvCell).join(','); }).join('\r\n') + '\r\n';
+  downloadBlob(new Blob([csv], {type:'text/csv;charset=utf-8'}), APP+'-import-template.csv');
+  toast('Template downloaded.');
+}
+
+/* ============================================================
+   SETTINGS / BIN / SNAPSHOTS
+   ============================================================ */
+function renderSettings(){
+  if(!$('#stCount')) return;
+  $('#stCount').textContent = liveRecords().length + ' live · ' + S.records.filter(function(r){ return r.deleted; }).length + ' deleted';
+  $('#stDevice').textContent = metaGet('deviceId','—');
+  $('#stSchema').textContent = 'v' + SCHEMA;
+  $('#stVersion').textContent = VERSION;
+  $('#setShip').value = metaGet('ship','');
+  $('#setBy').value = metaGet('preparedBy','');
+  var le = metaGet('lastExportAt', 0);
+  $('#stLastExport').textContent = le ? fmtRel(le) : 'never';
+  $('#stFsInfo').textContent = S.fsHandle ? (S.fsHandle.name || 'configured')
+    : (fsSupported() ? 'Not configured' : 'Not available in this browser');
+  $('#stFsLast').textContent = metaGet('lastFileWriteAt',0) ? fmtRel(metaGet('lastFileWriteAt')) : '—';
+  $('#stSnapLast').textContent = metaGet('lastSnapshotAt',0) ? fmtRel(metaGet('lastSnapshotAt')) : '—';
+  dbGetAll('backups').then(function(all){
+    $('#stSnapCount').textContent = (all||[]).length + ' of 5';
+    $('#stSnapInfo').textContent = (all||[]).length ? 'Newest ' + fmtRel(Math.max.apply(null, all.map(function(a){ return a.takenAt; }))) : 'None yet';
+  });
+  $('#stBinInfo').textContent = S.records.filter(function(r){ return r.deleted; }).length + ' in the deleted list';
+  var b = metaGet('lastImportBatch', null);
+  $('#stBatchInfo').textContent = b ? (b.counts.inserted+' new, '+b.counts.updated+' updated · '+fmtRel(b.at)) : 'No import to undo';
+  $('#stUndoImport').disabled = !b;
+  navigator.storage && navigator.storage.persisted && navigator.storage.persisted().then(function(p){
+    $('#stPersist').textContent = p ? 'Granted' : 'Not granted';
+  });
+}
+function binSheet(){
+  var gone = S.records.filter(function(r){ return r.deleted; })
+    .sort(function(a,b){ return b.updatedAt - a.updatedAt; });
+  var html = gone.length ? gone.map(function(r){
+    return '<div class="list-row"><div class="body"><div class="expr">'+esc(summaryOf(r))+'</div>'+
+      '<div class="meta">'+esc(typeLabel(r.type))+' · deleted '+esc(fmtRel(r.updatedAt))+'</div></div>'+
+      '<button class="btn ghost" data-restore="'+esc(r.id)+'">Restore</button></div>';
+  }).join('') : '<p class="muted small">Nothing deleted. Records here keep their tombstone so a backup from another device cannot bring them back.</p>';
+  openSheet('Deleted records', html, function(b){
+    $$('[data-restore]', b).forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var r = getRec(btn.dataset.restore);
+        if(r) restoreRecord(r).then(function(){ goBack(); renderAll(); toast('Restored.'); });
+      });
+    });
+  });
+}
+function snapshotSheet(){
+  dbGetAll('backups').then(function(all){
+    all.sort(function(a,b){ return b.takenAt - a.takenAt; });
+    var html = all.length ? all.map(function(s){
+      return '<div class="list-row"><div class="body"><div class="expr">'+esc(fmtAbs(s.takenAt))+'</div>'+
+        '<div class="meta">'+s.count+' records · '+esc(fmtRel(s.takenAt))+'</div></div>'+
+        '<button class="btn ghost" data-snap="'+esc(s.id)+'">Restore</button></div>';
+    }).join('') : '<p class="muted small">No snapshots yet. One is taken whenever you leave the app, at most once every ten minutes.</p>';
+    openSheet('Snapshots', html + '<p class="tiny muted mt8">Restoring merges the snapshot back in. Your current data is snapshotted first, so nothing is lost either way.</p>',
+      function(b){
+        $$('[data-snap]', b).forEach(function(btn){
+          btn.addEventListener('click', function(){
+            var s = all.filter(function(x){ return x.id === btn.dataset.snap; })[0];
+            if(!s) return;
+            goBack();
+            setTimeout(function(){
+              confirmSheet('Restore this snapshot?', 'It merges back in using the same rules as an import — newest version of each record wins.', 'Restore', function(){
+                Promise.resolve(dryRunMerge(s.payload)).then(function(plan){
+                  return applyMerge(plan);
+                }).then(function(){ toast('Snapshot restored.'); });
+              });
+            }, 60);
+          });
+        });
+      });
+  });
+}
+function whatsNewSheet(){
+  var html = WHATS_NEW.map(function(v){
+    return '<h4>Version '+esc(v[0])+'</h4><ul class="small">'+v[1].map(function(l){ return '<li>'+esc(l)+'</li>'; }).join('')+'</ul>';
+  }).join('');
+  openSheet("What's new", html);
+}
+function importFileSheet(file){
+  var fr = new FileReader();
+  fr.onload = function(){
+    var p;
+    try{ p = JSON.parse(fr.result); }
+    catch(e){ toast('That file is not readable JSON.'); return; }
+    Promise.resolve(dryRunMerge(p)).then(function(plan){
+      if(plan.errors && plan.errors.length){ toast(plan.errors[0]); return; }
+      var html = '<p class="small"><strong>'+plan.inserts.length+' new</strong>, '+
+        plan.updates.length+' updated, '+plan.unchanged+' unchanged, '+plan.conflicts+
+        ' kept as they are.</p>'+
+        '<p class="small muted">'+plan.logNew.length+' audit entries will be added. Nothing is deleted and nothing already newer is overwritten. A restore point is taken first.</p>'+
+        '<div class="row"><button class="btn primary grow" id="mgGo">Merge</button>'+
+        '<button class="btn ghost" id="mgNo">Cancel</button></div>';
+      openSheet('Import — dry run', html, function(b){
+        b.querySelector('#mgGo').addEventListener('click', function(){
+          goBack();
+          applyMerge(plan).then(function(){ toast('Merged.'); });
+        });
+        b.querySelector('#mgNo').addEventListener('click', function(){ goBack(); });
+      });
+    });
+  };
+  fr.readAsText(file);
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+function onScreenShown(id){
+  if(id === 'scr-history') renderHistory();
+  if(id === 'scr-settings') renderSettings();
+  if(id === 'scr-report') renderReportScreen();
+  if(id === 'scr-cargo') renderCargoList();
+  if(id === 'scr-cargoop') cargoRender();
+  if(id === 'scr-convert'){ cvCalc(); renderPrev('convert', '#cvPrev'); }
+  ['m3mt','etc','line','flow','rinse','interp'].forEach(function(t){
+    if(id === 'scr-'+t) renderPrev(t);
+  });
+  if(id === 'scr-rinse'){ rinseRenderTanks(); rinseCalc(); }
+  if(id === 'scr-line' && UI.line.mode === 'multi') lineRenderRows();
+}
+function renderAll(){
+  renderCalc();
+  if(S.screen === 'scr-history') renderHistory();
+  renderSettings();
+  ['m3mt','etc','line','flow','rinse','interp'].forEach(function(t){ renderPrev(t); });
+  renderPrev('convert', '#cvPrev');
+  renderCargoList();
+  if(S.screen === 'scr-cargoop') cargoRender();
+  updateExportChip();
+}
+function updateExportChip(){
+  var chip = $('#btnExportChip');
+  if(!chip) return;
+  var newest = 0;
+  S.records.forEach(function(r){ newest = Math.max(newest, r.updatedAt||0); });
+  var le = metaGet('lastExportAt', 0);
+  var mobile = !fsSupported();
+  chip.hidden = !(mobile && newest > le && S.records.length > 0);
+}
+var CALCFOR = {m3mt:m3mtCalc, etc:etcCalc, line:lineCalc, flow:flowCalc, rinse:rinseCalc, interp:interpCalc};
+var LASTSAVED = {};
+
+function wire(){
+  /* calculator header */
+  $('#btnHistory').addEventListener('click', function(){ nav('scr-history'); });
+  $('#btnConvert').addEventListener('click', function(){ nav('scr-convert'); });
+  $('#btnTools').addEventListener('click', function(){ nav('scr-tools'); });
+  $('#btnSettings').addEventListener('click', function(){ nav('scr-settings'); });
+  $('#btnSci').addEventListener('click', function(){
+    C.sci = !C.sci;
+    $('#btnSci').setAttribute('aria-pressed', String(C.sci));
+    renderKeys();
+  });
+  $('#btnExportChip').addEventListener('click', function(){ shareJson(); });
+  var bs = $('#btnBack'), holdT = null;
+  bs.addEventListener('click', function(){ backspace(); });
+  ['pointerdown','touchstart'].forEach(function(ev){
+    bs.addEventListener(ev, function(){ clearTimeout(holdT); holdT = setTimeout(function(){ clearAll(); toast('Cleared.'); }, 550); }, {passive:true});
+  });
+  ['pointerup','pointerleave','touchend','touchcancel'].forEach(function(ev){
+    bs.addEventListener(ev, function(){ clearTimeout(holdT); }, {passive:true});
+  });
+
+  $$('[data-back]').forEach(function(b){ b.addEventListener('click', goBack); });
+  $$('[data-nav]').forEach(function(b){ b.addEventListener('click', function(){ nav(b.dataset.nav); }); });
+
+  /* history */
+  $('#histSearch').addEventListener('input', debounce(function(e){ H.q = e.target.value; renderHistory(); }, 180));
+  $('#histSelectToggle').addEventListener('click', function(){
+    H.select = !H.select; H.picked = {};
+    $('#histSelectToggle').setAttribute('aria-pressed', String(H.select));
+    renderHistory();
+  });
+  $('#histPrint').addEventListener('click', function(){
+    RP.kind = 'log'; RP.from = null; RP.to = null;
+    RP.types = {}; if(H.filter !== 'all') RP.types[H.filter] = 1;
+    doPrint(buildLogReport());
+  });
+  $('#tallyClear').addEventListener('click', function(){ H.picked = {}; renderHistory(); });
+  $('#tallyPrint').addEventListener('click', function(){
+    var ids = Object.keys(H.picked);
+    if(!ids.length){ toast('Tick some rows first.'); return; }
+    doPrint(buildSelectionReport(ids));
+  });
+
+  /* converter */
+  buildConverter();
+
+  /* ship tools segments + inputs */
+  segInit('#mmDir', function(v){ UI.m3mt.dir = v; m3mtCalc(); }, 'v2w');
+  ['#mmQty','#mmDen','#mmTemp','#mmNote'].forEach(function(s){ $(s).addEventListener('input', m3mtCalc); });
+  segInit('#etUnit', function(v){ UI.etc.unit = v; etcCalc(); }, 'm³');
+  segInit('#etOp', function(v){ UI.etc.op = v; etcCalc(); }, 'Loading');
+  ['#etTotal','#etDone','#etRate','#etFrom','#etNote'].forEach(function(s){ $(s).addEventListener('input', etcCalc); });
+  segInit('#lnMode', function(v){
+    UI.line.mode = v;
+    $('#lnSingle').classList.toggle('hidden', v !== 'single');
+    $('#lnMulti').classList.toggle('hidden', v !== 'multi');
+    if(v === 'multi') lineRenderRows();
+    lineCalc();
+  }, 'single');
+  segInit('#lnLenUnit', function(v){ UI.line.lenUnit = v; lineCalc(); }, 'm');
+  ['#lnDia','#lnLen','#lnNote'].forEach(function(s){ $(s).addEventListener('input', lineCalc); });
+  $('#lnAdd').addEventListener('click', function(){ UI.line.rows.push({dia:'',len:''}); lineRenderRows(); });
+  ['#flDia','#flVel','#flNote'].forEach(function(s){ $(s).addEventListener('input', flowCalc); });
+  ['#rnFxOut','#rnFxN','#rnFxMin','#rnPtOut','#rnPtN','#rnPtMin','#rnNote'].forEach(function(s){
+    $(s).addEventListener('input', rinseCalc);
+  });
+  $('#rnPtToggle').addEventListener('click', function(){
+    UI.rinse.portable = !UI.rinse.portable;
+    $('#rnPtToggle').setAttribute('aria-pressed', String(UI.rinse.portable));
+    $('#rnPtToggle').textContent = UI.rinse.portable ? 'on' : 'off';
+    $('#rnPtFields').hidden = !UI.rinse.portable;
+    rinseCalc();
+  });
+  $('#rnAll').addEventListener('click', function(){
+    getTanks().forEach(function(t){ UI.rinse.tanks[t.id] = t.name; });
+    rinseRenderTanks(); rinseCalc();
+  });
+  $('#rnNone').addEventListener('click', function(){ UI.rinse.tanks = {}; rinseRenderTanks(); rinseCalc(); });
+  $('#rnManage').addEventListener('click', manageTanksSheet);
+  segInit('#ipFor', function(v){ UI.interp.solve = v; interpCalc(); }, 'y');
+  ['#ipX1','#ipY1','#ipX2','#ipY2','#ipIn','#ipNote'].forEach(function(s){ $(s).addEventListener('input', interpCalc); });
+  $('#ipDecMinus').addEventListener('click', function(){ UI.interp.dec = clamp(UI.interp.dec-1, 0, 8); $('#ipDec').textContent = UI.interp.dec; interpCalc(); });
+  $('#ipDecPlus').addEventListener('click', function(){ UI.interp.dec = clamp(UI.interp.dec+1, 0, 8); $('#ipDec').textContent = UI.interp.dec; interpCalc(); });
+
+  $$('[data-save]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = b.dataset.save, data = CALCFOR[t] ? CALCFOR[t]() : null;
+      if(!data){ toast('Fill in the figures first.'); return; }
+      data.eventAt = nowMs();
+      createRecord(t, data, data.plainWords).then(function(r){
+        LASTSAVED[t] = r.id;
+        toast('Saved to history.');
+        renderPrev(t); renderHistoryIfOpen(); renderSettings();
+      });
+    });
+  });
+  $$('[data-printone]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = b.dataset.printone, data = CALCFOR[t] ? CALCFOR[t]() : null;
+      if(!data){ toast('Fill in the figures first.'); return; }
+      data.eventAt = nowMs();
+      doPrint(buildSingleReport({type:t, data:data, createdAt:nowMs(), updatedAt:nowMs(), rev:1,
+        deviceId:metaGet('deviceId','')}));
+    });
+  });
+  $$('[data-clear]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = b.dataset.clear;
+      var scr = $('#scr-'+({m3mt:'m3mt', etc:'etc', line:'line', flow:'flow', rinse:'rinse', interp:'interp'})[t]);
+      $$('input', scr).forEach(function(i){ if(i.type !== 'checkbox') i.value = ''; });
+      if(t === 'rinse'){ UI.rinse.tanks = {}; rinseRenderTanks(); }
+      if(t === 'line'){ UI.line.rows = [{dia:'',len:''},{dia:'',len:''}]; lineRenderRows(); }
+      if(CALCFOR[t]) CALCFOR[t]();
+    });
+  });
+
+  /* cargo */
+  $('#cgNew').addEventListener('click', cargoNew);
+  $('#cgUpdate').addEventListener('click', cargoUpdateSheet);
+  $('#cgStop').addEventListener('click', cargoStopSheet);
+  $('#cgLog').addEventListener('click', cargoLogSheet);
+  $('#cgPrint').addEventListener('click', function(){ doPrint(buildCargoReport(CG.openId)); });
+  $('#cgEdit').addEventListener('click', function(){ var r = getRec(CG.openId); if(r) cargoEditSheet(r); });
+  $('#cgClose').addEventListener('click', function(){
+    var r = getRec(CG.openId); if(!r) return;
+    var closing = r.data.status !== 'closed';
+    updateRecord(r, {status: closing ? 'closed' : 'active'}, closing ? 'operation closed' : 'operation reopened')
+      .then(function(){ cargoRender(); renderCargoList(); toast(closing ? 'Operation closed.' : 'Operation reopened.'); });
+  });
+  $('#cgDelete').addEventListener('click', function(){
+    var r = getRec(CG.openId); if(!r) return;
+    confirmSheet('Delete this operation?', 'Every figure and stoppage goes with it. It stays in the audit trail and can be restored from Settings.', 'Delete', function(){
+      deleteRecord(r, 'operation deleted').then(function(){ goBack(); renderCargoList(); renderAll(); toast('Deleted.'); });
+    }, true);
+  });
+
+  /* reports */
+  $('#rpKind').addEventListener('change', function(){ RP.kind = $('#rpKind').value; renderReportScreen(); });
+  $('#rpCargoOp').addEventListener('change', function(){ RP.opId = $('#rpCargoOp').value; renderReportScreen(); });
+  $('#rpFrom').addEventListener('change', function(){ RP.from = $('#rpFrom').value || null; renderReportScreen(); });
+  $('#rpTo').addEventListener('change', function(){ RP.to = $('#rpTo').value || null; renderReportScreen(); });
+  $$('[data-range]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.dataset.range, now = new Date();
+      if(v === 'all'){ RP.from = null; RP.to = null; }
+      else if(v === 'today'){ RP.from = fmtDate(now.getTime()); RP.to = fmtDate(now.getTime()); }
+      else { RP.from = fmtDate(now.getTime() - (+v)*864e5); RP.to = fmtDate(now.getTime()); }
+      $('#rpFrom').value = RP.from || ''; $('#rpTo').value = RP.to || '';
+      renderReportScreen();
+    });
+  });
+  $('#rpSign').addEventListener('click', function(){ RP.sign = !RP.sign; renderReportScreen(); });
+  $('#rpLand').addEventListener('click', function(){
+    RP.land = !RP.land; S.landscape = RP.land; applyPaper(metaGet('paper','A4')); renderReportScreen();
+  });
+  $('#rpPrint').addEventListener('click', function(){ reportHtml().then(doPrint); });
+
+  /* bulk import */
+  $('#imTemplate').addEventListener('click', downloadTemplate);
+  $('#imExportCsv').addEventListener('click', exportCsv);
+  $('#imParsePaste').addEventListener('click', function(){
+    var t = $('#imPaste').value;
+    if(!t.trim()){ toast('Paste some rows first.'); return; }
+    handleGrid(t.indexOf('\t') >= 0 ? parseTsv(t) : parseCsv(t));
+  });
+  $('#imFile').addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0]; if(!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){ handleGrid(parseCsv(String(fr.result))); };
+    fr.readAsText(f);
+    e.target.value = '';
+  });
+  $('#imRemap').addEventListener('click', function(){
+    var map = {};
+    $$('#imMap select').forEach(function(s){ if(s.value !== '') map[s.dataset.col] = +s.value; });
+    metaSet('importMapping', map);
+    $('#imMapWrap').classList.add('hidden');
+    IMP.rows = validateRows(IMP.grid, map);
+    renderImportPreview();
+  });
+  $('#imApply').addEventListener('click', applyImport);
+  $('#imCancel').addEventListener('click', function(){
+    IMP.rows = []; $('#imPreviewWrap').classList.add('hidden'); $('#imPaste').value = '';
+  });
+
+  /* settings */
+  $$('#setThemes .chip').forEach(function(b){
+    b.addEventListener('click', function(){ applyTheme(b.dataset.theme); });
+  });
+  segInit('#setSep', function(v){ S.sep = (v === 'on'); metaSet('sep', S.sep); renderAll(); }, 'on');
+  segInit('#setAngle', function(v){ S.angle = v; metaSet('angle', v); renderKeys(); renderCalc(); }, 'deg');
+  segInit('#setPaper', function(v){ metaSet('paper', v); applyPaper(v); }, 'A4');
+  $('#setShip').addEventListener('change', function(){ metaSet('ship', $('#setShip').value.trim()); });
+  $('#setBy').addEventListener('change', function(){ metaSet('preparedBy', $('#setBy').value.trim()); });
+  $('#stExport').addEventListener('click', exportJson);
+  $('#stShare').addEventListener('click', shareJson);
+  $('#stCsv').addEventListener('click', exportCsv);
+  $('#stImportFile').addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0]; if(f) importFileSheet(f); e.target.value = '';
+  });
+  $('#stUndoImport').addEventListener('click', undoImport);
+  $('#stSnaps').addEventListener('click', snapshotSheet);
+  $('#stBin').addEventListener('click', binSheet);
+  $('#stFsPick').addEventListener('click', fsPick);
+  $('#stWhatsNew').addEventListener('click', whatsNewSheet);
+  $('#stHelp').addEventListener('click', function(){ nav('scr-help'); });
+
+  /* close hook — visibilitychange, not beforeunload */
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden'){
+      takeSnapshot(false);
+      writeFileBackup(false);
+    }
+  });
+  window.addEventListener('beforeunload', function(e){
+    var desktop = fsSupported() && (!window.matchMedia || window.matchMedia('(pointer:fine)').matches);
+    if(desktop && S.dirtyForFile && !S.fsHandle){
+      e.preventDefault(); e.returnValue = '';
+    }
+  });
+  /* install */
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); S.installEvent = e;
+    var b = $('#stInstall'); if(b){ b.hidden = false;
+      b.onclick = function(){ e.prompt(); b.hidden = true; }; }
+  });
+}
+
+/* ============================================================
+   STARTUP
+   ============================================================ */
+function boot(){
+  return dbOpen().then(metaLoad).then(function(){
+    if(!metaGet('deviceId')){
+      return metaSet('deviceId', 'dev-' + uid().slice(0, 8));
+    }
+  }).then(function(){
+    if(!metaGet('schemaVersion')) return metaSet('schemaVersion', SCHEMA);
+  }).then(function(){
+    return dbGetAll('records');
+  }).then(function(rows){
+    S.records = rows || [];
+    S.sep = metaGet('sep', true);
+    S.angle = metaGet('angle', 'deg');
+    S.fsHandle = metaGet('fsHandle', null);
+    UI.rinse.portable = false;
+    var th = metaGet('theme', null) || (function(){ try{ return localStorage.getItem('lecalc.theme'); }catch(e){ return null; } })() || 'amoled';
+    applyTheme(th);
+    applyPaper(metaGet('paper','A4'));
+    $$('#setSep button').forEach(function(b){ b.setAttribute('aria-pressed', String((b.dataset.v === 'on') === !!S.sep)); });
+    $$('#setAngle button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.v === S.angle)); });
+    $$('#setPaper button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.v === metaGet('paper','A4'))); });
+    $('#etFrom').value = localInputValue(nowMs());
+    $('#ipDec').textContent = UI.interp.dec;
+    renderKeys(); renderCalc(); lineRenderRows(); rinseRenderTanks(); renderAll();
+    wire();
+    if(navigator.storage && navigator.storage.persist){
+      navigator.storage.persisted().then(function(p){
+        if(!p) navigator.storage.persist().then(function(){ renderSettings(); });
+      });
+    }
+    var le = metaGet('lastExportAt', 0);
+    if(S.records.length > 5 && (!le || Date.now() - le > 7*864e5)){
+      setTimeout(function(){ toast('It has been a while since your last backup — Settings → Export.', 5000); }, 3000);
+    }
+    if(metaGet('lastSeenVersion','') !== VERSION){
+      metaSet('lastSeenVersion', VERSION);
+    }
+    /* Optional service worker, if you drop a sw.js beside this file on the server. */
+    if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    }
+    history.replaceState({layer:0}, '');
+  }).catch(function(e){
+    document.body.insertAdjacentHTML('afterbegin',
+      '<div class="card" style="margin:16px"><h3>Storage could not be opened</h3><p class="small">'+
+      esc(e && e.message ? e.message : String(e))+
+      '</p><p class="small">If you are browsing privately, the database is blocked. Open the app in a normal window.</p></div>');
+  });
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+</script>
+</body>
+</html>
