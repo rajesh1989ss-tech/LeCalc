@@ -12,8 +12,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Le Calc</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <script>
 /* Applied before first paint so AMOLED never flashes white. */
 (function(){
@@ -797,7 +799,7 @@ table.data td.num,table.data th.num{ text-align:right; font-variant-numeric:tabu
    ============================================================ */
 var APP = 'lecalc';
 var APP_NAME = 'Le Calc';
-var VERSION = '2.0.1';
+var VERSION = '2.0.2';
 var SCHEMA = 1;
 var DB_NAME = 'lecalc';
 var DB_VER = 1;
@@ -806,6 +808,11 @@ var IN_TO_M = 0.0254;
 var FT_TO_M = 0.3048;
 
 var WHATS_NEW = [
+  ['2.0.2', [
+    'Install on Android actually works now — the service worker was registered under a name that did not exist, so nothing was ever cached.',
+    'Opens with no signal at all: the app and its icons are held in the cache from the first visit.',
+    'New home-screen icon, including a maskable version so Android does not crop it oddly.'
+  ]],
   ['2.0.1', [
     'Installable from the home screen: proper web manifest, icons and offline caching.'
   ]],
@@ -3693,11 +3700,24 @@ function wire(){
       e.preventDefault(); e.returnValue = '';
     }
   });
-  /* install */
+  /* install — Chrome fires this once the install criteria are met, so the
+     button only appears on a browser that can actually honour it. */
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault(); S.installEvent = e;
-    var b = $('#stInstall'); if(b){ b.hidden = false;
-      b.onclick = function(){ e.prompt(); b.hidden = true; }; }
+    var b = $('#stInstall'); if(!b) return;
+    b.hidden = false;
+    b.onclick = function(){
+      var ev = S.installEvent;
+      /* the stashed event is single-use whichever way the user answers;
+         Chrome re-fires it on a later visit if they declined */
+      S.installEvent = null; b.hidden = true;
+      if(ev) ev.prompt();
+    };
+  });
+  window.addEventListener('appinstalled', function(){
+    S.installEvent = null;
+    var b = $('#stInstall'); if(b) b.hidden = true;
+    toast('Le Calc is on your home screen.');
   });
 }
 
@@ -3741,10 +3761,6 @@ function boot(){
     if(metaGet('lastSeenVersion','') !== VERSION){
       metaSet('lastSeenVersion', VERSION);
     }
-    /* Optional service worker, if you drop a sw.js beside this file on the server. */
-    if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
-      navigator.serviceWorker.register('sw.js').catch(function(){});
-    }
     history.replaceState({layer:0}, '');
   }).catch(function(e){
     document.body.insertAdjacentHTML('afterbegin',
@@ -3755,6 +3771,13 @@ function boot(){
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else boot();
+
+/* The service worker registers on its own, not inside boot(): it is what makes
+   the app offline-capable and installable, and a blocked database must not cost
+   it either. Relative to this document, so a project sub-path still works. */
+if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
+  navigator.serviceWorker.register('./sw.js').catch(function(){});
+}
 </script>
 </body>
 </html>
