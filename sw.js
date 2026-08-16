@@ -6,20 +6,29 @@
      - with no signal at all, everything comes from the cache.
    Nothing here touches IndexedDB, so your records are never affected. */
 
-var CACHE = 'lecalc-v2.0.1';
+var CACHE = 'lecalc-v2.0.2';
 var CORE = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
-  './icon-maskable-512.png'
+  './icon-maskable-192.png',
+  './icon-maskable-512.png',
+  './apple-touch-icon.png',
+  './favicon-32.png'
 ];
 
 self.addEventListener('install', function(e){
   e.waitUntil(
-    caches.open(CACHE).then(function(c){ return c.addAll(CORE); })
-      .then(function(){ return self.skipWaiting(); })
+    caches.open(CACHE).then(function(c){
+      /* One missing file must not fail the whole install — a service worker
+         that never activates is a service worker Chrome will not install
+         the app from. */
+      return Promise.all(CORE.map(function(url){
+        return c.add(url).catch(function(){});
+      }));
+    }).then(function(){ return self.skipWaiting(); })
   );
 });
 
